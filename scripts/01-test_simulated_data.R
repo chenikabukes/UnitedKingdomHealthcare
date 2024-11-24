@@ -1,23 +1,22 @@
 #### Preamble ####
-# Purpose: Tests the structure and validity of the simulated Australian 
-  #electoral divisions dataset.
-# Author: Rohan Alexander
-# Date: 26 September 2024
-# Contact: rohan.alexander@utoronto.ca
+# Purpose: Tests the structure and validity of the simulated healthcare dataset.
+# Author: Chenika Bukes
+# Date: 24 November 2024
+# Contact: chenika.bukes@mail.utoronto.ca
 # License: MIT
 # Pre-requisites: 
-  # - The `tidyverse` package must be installed and loaded
-  # - 00-simulate_data.R must have been run
-# Any other information needed? Make sure you are in the `starter_folder` rproj
+# - The `tidyverse` package must be installed and loaded
+# - The simulated healthcare dataset must exist
+# Any other information needed? Ensure that the dataset is generated and saved in the appropriate directory.
 
 
 #### Workspace setup ####
 library(tidyverse)
 
-analysis_data <- read_csv("data/00-simulated_data/simulated_data.csv")
+simulated_data <- read_csv("data/00-simulated_data/simulated_healthcare_data.csv")
 
 # Test if the data was successfully loaded
-if (exists("analysis_data")) {
+if (exists("simulated_data")) {
   message("Test Passed: The dataset was successfully loaded.")
 } else {
   stop("Test Failed: The dataset could not be loaded.")
@@ -26,64 +25,84 @@ if (exists("analysis_data")) {
 
 #### Test data ####
 
-# Check if the dataset has 151 rows
-if (nrow(analysis_data) == 151) {
-  message("Test Passed: The dataset has 151 rows.")
+# Check if the dataset has 25 rows (5 years, 5 observations per year)
+if (nrow(simulated_data) == 25) {
+  message("Test Passed: The dataset has 25 rows.")
 } else {
-  stop("Test Failed: The dataset does not have 151 rows.")
+  stop("Test Failed: The dataset does not have 25 rows.")
 }
 
-# Check if the dataset has 3 columns
-if (ncol(analysis_data) == 3) {
-  message("Test Passed: The dataset has 3 columns.")
+# Check if the dataset has the correct number of columns
+expected_columns <- c(
+  "Year", "beds_per_1000", "physicians_per_1000", "attendance",
+  "Wait_CorGraft", "Wait_Angioplasty", "Wait_Knee", "Wait_Hip",
+  "Wait_Cataract", "Wait_Prostatectomy", "Wait_Hysterectomy",
+  "Pct_Wait_CorGraft", "Pct_Wait_Angioplasty", "Pct_Wait_Knee", 
+  "Pct_Wait_Hip", "Pct_Wait_Cataract", "Pct_Wait_Prostatectomy", 
+  "Pct_Wait_Hysterectomy", "Pct_Wait_Avg"
+)
+
+if (all(colnames(simulated_data) == expected_columns)) {
+  message("Test Passed: The dataset contains the correct columns.")
 } else {
-  stop("Test Failed: The dataset does not have 3 columns.")
+  stop("Test Failed: The dataset does not contain the correct columns.")
 }
 
-# Check if all values in the 'division' column are unique
-if (n_distinct(analysis_data$division) == nrow(analysis_data)) {
-  message("Test Passed: All values in 'division' are unique.")
+# Check if the 'Year' column contains values between 2015 and 2019
+if (all(simulated_data$Year >= 2015 & simulated_data$Year <= 2019)) {
+  message("Test Passed: The 'Year' column contains only values between 2015 and 2019.")
 } else {
-  stop("Test Failed: The 'division' column contains duplicate values.")
+  stop("Test Failed: The 'Year' column contains invalid values.")
 }
 
-# Check if the 'state' column contains only valid Australian state names
-valid_states <- c("New South Wales", "Victoria", "Queensland", "South Australia", 
-                  "Western Australia", "Tasmania", "Northern Territory", 
-                  "Australian Capital Territory")
+# Check if numerical columns are non-negative
+numerical_columns <- simulated_data %>%
+  select(
+    beds_per_1000, physicians_per_1000, attendance,
+    starts_with("Wait_"), starts_with("Pct_")
+  )
 
-if (all(analysis_data$state %in% valid_states)) {
-  message("Test Passed: The 'state' column contains only valid Australian state names.")
+if (all(sapply(numerical_columns, function(col) all(col >= 0, na.rm = TRUE)))) {
+  message("Test Passed: All numerical columns contain non-negative values.")
 } else {
-  stop("Test Failed: The 'state' column contains invalid state names.")
+  stop("Test Failed: Some numerical columns contain negative values.")
 }
 
-# Check if the 'party' column contains only valid party names
-valid_parties <- c("Labor", "Liberal", "Greens", "National", "Other")
+# Check if percentage columns are valid percentages (-100 to Inf)
+percentage_columns <- simulated_data %>%
+  select(starts_with("Pct_"))
 
-if (all(analysis_data$party %in% valid_parties)) {
-  message("Test Passed: The 'party' column contains only valid party names.")
+if (all(sapply(percentage_columns, function(col) all(col >= -100, na.rm = TRUE)))) {
+  message("Test Passed: All percentage columns contain valid values.")
 } else {
-  stop("Test Failed: The 'party' column contains invalid party names.")
+  stop("Test Failed: Some percentage columns contain invalid values.")
 }
 
 # Check if there are any missing values in the dataset
-if (all(!is.na(analysis_data))) {
+if (all(!is.na(simulated_data))) {
   message("Test Passed: The dataset contains no missing values.")
 } else {
   stop("Test Failed: The dataset contains missing values.")
 }
 
-# Check if there are no empty strings in 'division', 'state', and 'party' columns
-if (all(analysis_data$division != "" & analysis_data$state != "" & analysis_data$party != "")) {
-  message("Test Passed: There are no empty strings in 'division', 'state', or 'party'.")
+# Check if 'Pct_Wait_Avg' is correctly calculated as the mean of other percentages
+calculated_avg <- simulated_data %>%
+  rowwise() %>%
+  mutate(
+    Avg_Check = round(mean(c_across(starts_with("Pct_Wait_")), na.rm = TRUE), 2)
+  ) %>%
+  ungroup()
+
+if (all(calculated_avg$Pct_Wait_Avg == calculated_avg$Avg_Check)) {
+  message("Test Passed: 'Pct_Wait_Avg' is correctly calculated.")
 } else {
-  stop("Test Failed: There are empty strings in one or more columns.")
+  stop("Test Failed: 'Pct_Wait_Avg' is not correctly calculated.")
 }
 
-# Check if the 'party' column has at least two unique values
-if (n_distinct(analysis_data$party) >= 2) {
-  message("Test Passed: The 'party' column contains at least two unique values.")
+# Check if 'beds_per_1000' and 'physicians_per_1000' are within realistic ranges
+if (all(simulated_data$beds_per_1000 >= 1 & simulated_data$beds_per_1000 <= 3) &&
+    all(simulated_data$physicians_per_1000 >= 1.5 & simulated_data$physicians_per_1000 <= 2.5)) {
+  message("Test Passed: 'beds_per_1000' and 'physicians_per_1000' are within realistic ranges.")
 } else {
-  stop("Test Failed: The 'party' column contains less than two unique values.")
+  stop("Test Failed: 'beds_per_1000' or 'physicians_per_1000' contain unrealistic values.")
 }
