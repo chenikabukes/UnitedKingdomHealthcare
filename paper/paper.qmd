@@ -34,7 +34,7 @@ This paper investigates how hospital infrastructure, workforce availability, and
 
 The findings reveal that declining hospital bed availability has a pronounced negative impact on wait times, while higher physician density and attendance rates are associated with additional delays, potentially due to demand outstripping capacity. These results emphasize the need for a balanced approach to resource allocation, combining infrastructure investment with demand management strategies.
 
-Understanding the drivers of wait times is vital for improving healthcare access and efficiency. By identifying the factors contributing to delays, this paper offers actionable insights for policymakers and healthcare administrators seeking to enhance patient outcomes and system resilience. The remainder of this paper is structured as follows: @sec-data details the data and methodology, @sec-model presents the model used for analysis of the data, @sec-results presents the key results from the model, and @sec-discussion concludes with final analysis of the results and recommendations for future research.
+Understanding the drivers of wait times is vital for improving healthcare access and efficiency [@king]. By identifying the factors contributing to delays, this paper offers actionable insights for policymakers and healthcare administrators seeking to enhance patient outcomes and system resilience. The remainder of this paper is structured as follows: @sec-data details the data and methodology, @sec-model presents the model used for analysis of the data, @sec-results presents the key results from the model, and @sec-discussion concludes with final analysis of the results and recommendations for future research.
 
 # Data {#sec-data}
 
@@ -49,7 +49,7 @@ The NHS A&E Attendances and Emergency Admissions dataset [@attendance] captures 
 The remaining datasets are sourced from the OECD Health Statistics 2024 database [@health], which provides standardized, internationally comparable data across healthcare systems. The OECD collaborates with organizations such as the United Nations and Eurostat to develop robust methodologies and benchmarks for health statistics. For the United Kingdom, data on hospital resources (e.g., hospital counts and bed availability), physician counts, and other health system metrics are provided by various entities like NHS Digital and Public Health Scotland. The OECD ensures consistency and comparability of this data through rigorous quality checks and methodological adjustments.
 
 ## Measurement
-**Physicians per 1,000** [@physicians]. Source: Physician counts are sourced from the OECD, relying on NHS Digital, Public Health Scotland, and the General Medical Council (GMC). The data reflect licensed physicians, encompassing both general practitioners and specialists. The metric is calculated as the total number of physicians per 1,000 population. The dataset includes both headcount and rolecount metrics, with post-2009 data transitioning to headcount for greater accuracy. Physician counts include GP retainers and full-time equivalents, providing an accurate picture of the available workforce. Historical data adjustments account for changes in collection methodologies. Similar datasets include WHO and Eurostat health statistics offer broader regional comparisons but lack the granularity needed for a UK-focused study.
+**Physicians per 1,000** [@physicians]. Physician counts are sourced from the OECD, relying on NHS Digital, Public Health Scotland, and the General Medical Council (GMC). The data reflect licensed physicians, encompassing both general practitioners and specialists. The metric is calculated as the total number of physicians per 1,000 population. The dataset includes both headcount and rolecount metrics, with post-2009 data transitioning to headcount for greater accuracy. Physician counts include GP retainers and full-time equivalents, providing an accurate picture of the available workforce. Historical data adjustments account for changes in collection methodologies. Similar datasets include WHO and Eurostat health statistics offer broader regional comparisons but lack the granularity needed for a UK-focused study.
 
 **Beds per 1,000 Population** [@beds]: This metric, provided by the OECD, uses data from NHS Digital, Public Health Scotland, and national agencies across the UK. It tracks the availability of inpatient beds. Annual averages of beds available overnight in public hospitals. Includes acute care and psychiatric beds but excludes private sector facilities for consistency. Data are for financial years and represent publicly funded healthcare infrastructure. No significant methodological breaks are noted for this variable.
 
@@ -72,8 +72,8 @@ EXPLAIN HOW YOU CLEANED DATA HERE
 cleaned_data <- read_parquet("../data/02-analysis_data/final_healthcare_data.parquet")
 
 # Split the table into smaller parts
-part1 <- cleaned_data[, 1:6]  
-part2 <- cleaned_data[, 7:ncol(cleaned_data)]
+part1 <- cleaned_data[, 1:4]  
+part2 <- cleaned_data[, 4:ncol(cleaned_data)]
 
 # Display the first part of the table
 kable(head(part1), 
@@ -262,19 +262,14 @@ We expect to confirm that reduced healthcare resources (fewer hospital beds, low
 #| label: tbl-modelresults
 #| tbl-cap: "Linear model explaining percentage increase in wait times based on healthcare system predictors"
 
-# Fit the linear regression model
-model <- lm(
-   Pct_Wait_Avg ~ beds_per_1000 + physicians_per_1000 + attendance,
-  data = cleaned_data
-)
+# Load the saved model
+model <- readRDS("../models/wait_times_model.rds")
 
 # Display the model summary in a table
 modelsummary::modelsummary(
-  list("Linear Model" = model),
+  list("Frequentist Linear Model" = model),
   statistic = c("p.value")
 )
-
-
 ```
 
 @tbl-modelresults presents the linear regression model which reveals significant relationships between healthcare system factors and the percentage increase in wait times as all the variables included in the model have p-values less than 0.05. The number of hospital beds per 1,000 inhabitants has a strong negative effect (\Beta=−75.36), indicating that as bed availability decreases, wait times increase. Physician availability per 1,000 shows a positive but smaller effect (\Beta=29.99), suggesting that higher physician counts may correlate with increased demand or delays. Attendance rates also have a significant positive effect (\Beta=1.45), highlighting the strain of growing patient loads on healthcare systems. The model's $R^2$ of 1 suggests it explains nearly all variability in the data, though this may reflect overfitting given the small sample size. Overall, the results emphasize the critical role of resource availability in managing wait times.

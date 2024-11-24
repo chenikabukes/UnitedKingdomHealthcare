@@ -10,7 +10,6 @@
 library(arrow)
 library(tidyverse)
 
-
 #### Process and merge datasets ####
 
 # 1. Load and process the waiting times data

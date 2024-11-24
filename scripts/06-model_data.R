@@ -1,37 +1,25 @@
 #### Preamble ####
-# Purpose: Models... [...UPDATE THIS...]
-# Author: Rohan Alexander [...UPDATE THIS...]
-# Date: 11 February 2023 [...UPDATE THIS...]
-# Contact: rohan.alexander@utoronto.ca [...UPDATE THIS...]
+# Purpose: Fits and saves a frequentist linear model for hospital wait times.
+# Author: Chenika Bukes
+# Date: 24 November 2024
+# Contact: chenika.bukes@mail.utoronto.ca
 # License: MIT
-# Pre-requisites: [...UPDATE THIS...]
-# Any other information needed? [...UPDATE THIS...]
-
+# Pre-requisites: Cleaned dataset is available at "./data/02-analysis_data/final_healthcare_data.csv".
 
 #### Workspace setup ####
 library(tidyverse)
-library(rstanarm)
 
 #### Read data ####
-analysis_data <- read_csv("data/analysis_data/analysis_data.csv")
+# Load the cleaned data
+analysis_data <- read_csv("./data/02-analysis_data/final_healthcare_data.csv")
 
-### Model data ####
-first_model <-
-  stan_glm(
-    formula = flying_time ~ length + width,
-    data = analysis_data,
-    family = gaussian(),
-    prior = normal(location = 0, scale = 2.5, autoscale = TRUE),
-    prior_intercept = normal(location = 0, scale = 2.5, autoscale = TRUE),
-    prior_aux = exponential(rate = 1, autoscale = TRUE),
-    seed = 853
-  )
-
-
-#### Save model ####
-saveRDS(
-  first_model,
-  file = "models/first_model.rds"
+#### Fit the linear model ####
+# Model: Percentage change in wait times as a function of healthcare predictors
+wait_times_model <- lm(
+  Pct_Wait_Avg ~ beds_per_1000 + physicians_per_1000 + attendance,
+  data = analysis_data
 )
 
-
+#### Save the model ####
+# Save the fitted model for reuse
+saveRDS(wait_times_model, file = "./models/wait_times_model.rds")
