@@ -8,6 +8,7 @@ date: today
 date-format: long
 abstract: "Hospital wait times in the United Kingdom are a critical measure of healthcare efficiency, reflecting the balance between resources and demand. This study examines the relationships between healthcare infrastructure, workforce availability, and patient attendance rates with average wait times for seven key medical procedures from 2015 to 2019. Using regression modeling, we find that reduced hospital beds per capita significantly prolong wait times,and while higher physician availability helps, it does little to offset the impact of declining bed availability. Additionally, Type 1 major care attendance rates correlate with increased delays, further indicating systemic bottlenecks. These findings highlight the urgent need for strategic resource allocation and demand management to address delays and improve patient outcomes."
 format: pdf
+toc: true
 number-sections: true
 bibliography: references.bib
 ---
@@ -33,19 +34,19 @@ This paper investigates how hospital infrastructure, workforce availability, and
 
 The findings reveal that declining hospital bed availability has a pronounced negative impact on wait times, while higher physician density and attendance rates are associated with additional delays, potentially due to demand outstripping capacity. These results emphasize the need for a balanced approach to resource allocation, combining infrastructure investment with demand management strategies.
 
-Understanding the drivers of wait times is vital for improving healthcare access and efficiency. By identifying the factors contributing to delays, this paper offers actionable insights for policymakers and healthcare administrators seeking to enhance patient outcomes and system resilience. The remainder of this paper is structured as follows: Section 1 details the data and methodology, Section 2 presents key results, Section 3 discusses implications, and Section 4 concludes with recommendations for future research.
+Understanding the drivers of wait times is vital for improving healthcare access and efficiency. By identifying the factors contributing to delays, this paper offers actionable insights for policymakers and healthcare administrators seeking to enhance patient outcomes and system resilience. The remainder of this paper is structured as follows: @sec-data details the data and methodology, @sec-model presents the model used for analysis of the data, @sec-results presents the key results from the model, and @sec-discussion concludes with final analysis of the results and recommendations for future research.
 
 # Data {#sec-data}
 
 ## Overview
 
-In this paper, the analysis will be carried out using the statistical programming language `R` [@citeR], using the haven and `tidyverse` [@citeTidy], `devtools` (Wickham, Hester, and Chang 2020) and `dplyr` (Wickham et al. 2021),. All figures in the report are generated using `ggplot2` [@citeGG]. We run the model in R [@citeR] using the `modelsummary` package of [@modelsummary].
+In this paper, the analysis will be carried out using the statistical programming language `R` [@citeR], using the haven and `tidyverse` [@citeTidy], `devtools` (Wickham, Hester, and Chang 2020) and `dplyr` (Wickham et al. 2021). All figures in the report are generated using `ggplot2` [@citeGG]. We run the model in R [@citeR] using the `modelsummary` package of [@modelsummary].
 
 This report integrates data from two key sources: the NHS and the OECD. These datasets provide critical information to analyze trends in healthcare demand and resources in the United Kingdom.
 
-The NHS A&E Attendances and Emergency Admissions dataset captures the monthly demand for emergency services. It includes the total number of attendances at Accident & Emergency (A&E) departments and emergency admissions, alongside measures of wait times for admission. These statistics, collected at the provider organization level, are drawn from NHS Trusts, Foundation Trusts, and independent sector organizations. The data was aggregated from monthly submissions, a change implemented after Sir Bruce Keogh’s review of waiting time standards. The dataset includes attendance and admission figures indexed to pre-pandemic and earlier baseline levels, enabling us to monitor trends and variations across years.
+The NHS A&E Attendances and Emergency Admissions dataset [@attendance] captures the monthly demand for emergency services. It includes the total number of attendances at Accident & Emergency (A&E) departments and emergency admissions, alongside measures of wait times for admission. These statistics, collected at the provider organization level, are drawn from NHS Trusts, Foundation Trusts, and independent sector organizations. The data was aggregated from monthly submissions, a change implemented after Sir Bruce Keogh’s review of waiting time standards. The dataset includes attendance and admission figures indexed to pre-pandemic and earlier baseline levels, enabling us to monitor trends and variations across years.
 
-The remaining datasets are sourced from the OECD Health Statistics 2024 database, which provides standardized, internationally comparable data across healthcare systems. The OECD collaborates with organizations such as the United Nations and Eurostat to develop robust methodologies and benchmarks for health statistics. For the United Kingdom, data on hospital resources (e.g., hospital counts and bed availability), physician counts, and other health system metrics are provided by various entities like NHS Digital and Public Health Scotland. The OECD ensures consistency and comparability of this data through rigorous quality checks and methodological adjustments.
+The remaining datasets are sourced from the OECD Health Statistics 2024 database [@health], which provides standardized, internationally comparable data across healthcare systems. The OECD collaborates with organizations such as the United Nations and Eurostat to develop robust methodologies and benchmarks for health statistics. For the United Kingdom, data on hospital resources (e.g., hospital counts and bed availability), physician counts, and other health system metrics are provided by various entities like NHS Digital and Public Health Scotland. The OECD ensures consistency and comparability of this data through rigorous quality checks and methodological adjustments.
 
 ## Measurement
 **Physicians per 1,000** [@physicians]. Source: Physician counts are sourced from the OECD, relying on NHS Digital, Public Health Scotland, and the General Medical Council (GMC). The data reflect licensed physicians, encompassing both general practitioners and specialists. The metric is calculated as the total number of physicians per 1,000 population. The dataset includes both headcount and rolecount metrics, with post-2009 data transitioning to headcount for greater accuracy. Physician counts include GP retainers and full-time equivalents, providing an accurate picture of the available workforce. Historical data adjustments account for changes in collection methodologies. Similar datasets include WHO and Eurostat health statistics offer broader regional comparisons but lack the granularity needed for a UK-focused study.
@@ -56,9 +57,9 @@ The remaining datasets are sourced from the OECD Health Statistics 2024 database
 
 **Waiting Times for Key Medical Procedures** [@wait]: Waiting time data are sourced from the OECD, which uses NHS data for the United Kingdom. The dataset covers average waiting times for seven key procedures, including knee replacements and coronary artery bypass grafts. Procedure-Specific Wait Times: Measured in months, these reflect the average time in the NHS between referral and procedure. This dataset includes detailed procedure-specific insights, allowing for cross-procedure comparisons. Data validation is conducted at both the NHS and OECD levels to ensure reliability.
 
-**Overall**: All datasets rely on administrative data validated by their respective agencies, minimizing reporting errors. While historical methodological changes (e.g., hospital reporting standards) necessitated adjustments, these do not materially affect the study's conclusions. Similar datasets from organizations like WHO or Eurostat could offer supplementary insights but were not utilized due to a lack of UK-specific detail and consistency.
+**Overall**: All datasets rely on administrative data validated by their respective agencies, minimizing reporting errors. While historical methodological changes (e.g., hospital reporting standards) necessitated adjustments, these do not affect the study's time period from 2015 to 2019. Similar datasets from organizations like WHO or Eurostat could offer supplementary insights but were not utilized due to a lack of UK-specific detail and consistency.
 
-## Methodology #{sec-methodology}
+## Methodology {#sec-methodology}
 EXPLAIN HOW YOU CLEANED DATA HERE 
 
 ```{r}
@@ -155,6 +156,21 @@ ggplot(long_wait_pct_data, aes(x = Year, y = Pct_Change, color = Medical_Procedu
 @fig-data depicts the percentage increase in wait times for various medical procedures compared to 2015. By 2019, most procedures show a notable increase in wait times, with angioplasty and prostatectomy exhibiting the largest rises. While some procedures, such as knee and hip surgeries, show consistent increases, others, like prostatectomy, initially decline before rising sharply. The steady increase across most procedures highlights a systemic trend of growing delays in accessing medical care, potentially signaling resource limitations or increased demand in healthcare services. Overall, wait times have risen by over 20% since 2015, further emphasizing the need for targeted interventions to improve healthcare accessibility and efficiency.
 ## Predictor variables
 
+### Hospital Beds per 1,000
+```{r}
+#| label: fig-beds
+#| fig-cap: United Kingdom's Hospital Beds per 1000 Inhabitants from 2015 to 2019
+#| echo: false
+#| warning: false
+
+ggplot(cleaned_data, aes(x = Year, y = beds_per_1000)) +
+  geom_line(color = "blue") +
+  labs(title = "Hospital Beds per 1 000 rates from 2015 to 2019", x = "Year", y = "Beds per 1 000 Inhabitants") +
+  theme_minimal()
+```
+
+@fig-beds shows a steady decline in hospital beds per 1,000 inhabitants from 2015 to 2019, decreasing from approximately 2.6 to 2.45 beds. This consistent downward trend suggests a reduction in bed capacity relative to population growth, potentially indicating healthcare system pressures such as resource reallocation, efficiency measures, or underinvestment in infrastructure. The decline highlights the need to assess the impact on patient care and explore strategies to balance population needs with available resources.
+
 ### Physicians per 1,000
 
 ```{r}
@@ -168,21 +184,8 @@ ggplot(cleaned_data, aes(x = Year, y = physicians_per_1000)) +
   labs(title = "Physicians per 1 000 rates from 2015 to 2019", x = "Year", y = "Physicians per 1 000") +
   theme_minimal()
 ```
+
 @fig-physicians shows a steady increase in the number of physicians per 1,000 inhabitants from 2015 to 2019, rising from approximately 2.0 to 2.15. This consistent growth indicates an improvement in physician availability relative to population size, potentially reflecting increased investment in healthcare workforce development or recruitment efforts. The trend suggests progress in addressing healthcare access, but further analysis is needed to determine whether this growth aligns with demand and regional healthcare needs.
-
-### Hospital Beds per 1,000
-```{r}
-#| label: fig-beds
-#| fig-cap: United Kingdom's Hospital Beds per 1000 Inhabitants from 2015 to 2019
-#| echo: false
-#| warning: false
-
-ggplot(cleaned_data, aes(x = Year, y = beds_per_1000)) +
-  geom_line(color = "blue") +
-  labs(title = "Hospital Beds per 1 000 rates from 2015 to 2019", x = "Year", y = "Beds per 1 000 Inhabitants") +
-  theme_minimal()
-```
-@fig-beds shows a steady decline in hospital beds per 1,000 inhabitants from 2015 to 2019, decreasing from approximately 2.6 to 2.45 beds. This consistent downward trend suggests a reduction in bed capacity relative to population growth, potentially indicating healthcare system pressures such as resource reallocation, efficiency measures, or underinvestment in infrastructure. The decline highlights the need to assess the impact on patient care and explore strategies to balance population needs with available resources.
 
 ### Demand for Services 
 ```{r}
@@ -203,11 +206,10 @@ ggplot(cleaned_data) +
   ) +
   theme_minimal() +
   theme(legend.position = "bottom")
-
 ```
 @fig-attendance-demand illustrates the percentage change in Type 1 Major Care Attendance (A&E Attendances) in the UK from 2015 to 2019. A&E attendances showed a modest, steady increase over the observed period, plateauing slightly by 2019. This trend highlights the growing demand for emergency services and underscores the need for further investigation into factors contributing to increased attendance, such as population growth, access to primary care, or changes in healthcare-seeking behavior. Addressing these factors through improved preventive and community-based care could help reduce the burden on emergency services.
 
-# Model
+# Model {#sec-model}
 After conducting exploratory analysis on the dataset, we observed relationships between healthcare system factors (e.g., number of physicians, hospital beds per 1,000 people, and attendance rates) and wait times for medical procedures. These variables show potential predictive power, indicating a linear relationship. To further investigate and make predictions about how these factors influence wait times, we will implement a linear regression model.
 
 The goal of this linear regression model is to estimate the coefficients $\beta_0, \beta_1, \beta_3$ such that the model fits the data well and provides insights into how each predictor contributes to wait times for medical procedures. Additionally, this model will enable predictions of wait times under different healthcare conditions.
@@ -225,14 +227,14 @@ $$
 Y_{i} = \beta_0 + \beta_1X_{1i} + \beta_2X_{2i} + \beta_3X_{3i} + \epsilon_{i}
 $$
 
-
 \begin{align} 
-$Y_{ij}$ is the average percenta change in wait time for the 7 specific medical procedures in year $i$.\\
-$X_{1i}, X_{2i}, X_{3i}$ represent the independent variables of physicians per 1000 people, beds per 1000 people, Type 1 attendance for procedure $j$ in year $i$.\\
-$\beta_0$ is the intercept or constant term, representing the expected wait time when all predictors are zero.\\
-$\beta_1, \beta_2, \beta_3$ are the slope coefficients for the predictors, representing the estimated change in wait time for a one-unit increase in the respective predictor.\\
-$\epsilon_{i}$ is the error term, representing the deviation of the actual wait time from the predicted wait time based on the regression equation.
+Y_{ij} & = \text{The average percentage change in wait time for the 7 specific medical procedures in year } i. \\
+X_{1i}, X_{2i}, X_{3i} & = \text{The independent variables of physicians per 1000 people, beds per 1000 people, and Type 1 attendance for procedure } j \text{ in year } i. \\
+\beta_0 & = \text{The intercept or constant term, representing the expected wait time when all predictors are zero.} \\
+\beta_1, \beta_2, \beta_3 & = \text{The slope coefficients for the predictors, representing the estimated change in wait time for a one-unit increase in the respective predictor.} \\
+\epsilon_{i} & = \text{The error term, representing the deviation of the actual wait time from the predicted wait time based on the regression equation.}
 \end{align}
+
 
 Each predictor variable is expected to contribute uniquely:
 
@@ -249,7 +251,7 @@ This model framework allows us to evaluate the impact of key healthcare system f
 
 We expect to confirm that reduced healthcare resources (fewer hospital beds, lower physician availability), and increased demand (more tpe 1 attendances) are associated with longer wait times, while better resource availability can mitigate delays. This analysis will help identify key leverage points for optimizing resource allocation and reducing wait times across various medical procedures.
 
-# Results
+# Results {#sec-results}
 
 ## Model Validation
 
@@ -277,7 +279,7 @@ modelsummary::modelsummary(
 
 @tbl-modelresults presents the linear regression model which reveals significant relationships between healthcare system factors and the percentage increase in wait times as all the variables included in the model have p-values less than 0.05. The number of hospital beds per 1,000 inhabitants has a strong negative effect (\Beta=−75.36), indicating that as bed availability decreases, wait times increase. Physician availability per 1,000 shows a positive but smaller effect (\Beta=29.99), suggesting that higher physician counts may correlate with increased demand or delays. Attendance rates also have a significant positive effect (\Beta=1.45), highlighting the strain of growing patient loads on healthcare systems. The model's $R^2$ of 1 suggests it explains nearly all variability in the data, though this may reflect overfitting given the small sample size. Overall, the results emphasize the critical role of resource availability in managing wait times.
 
-# Discussion
+# Discussion {#sec-discussion}
 
 ## Overview
 This study investigates the relationships between healthcare infrastructure, workforce availability, and patient attendance rates with average wait times for key medical procedures in the United Kingdom from 2015 to 2019. Our analysis employs linear modeling to find that the availability of hospital beds per 1,000 inhabitants plays a crucial role in mitigating delays, with reduced bed capacity significantly increasing wait times. While higher physician density was hypothesized to reduce delays, our findings suggest a complex relationship where increased physician numbers can exacerbate delays due to system inefficiencies or heightened demand. Additionally, rising attendance rates place further strain on healthcare resources, leading to longer wait times. These findings emphasize the multifaceted nature of healthcare delays and underscore the need for targeted policy interventions to address both resource allocation and demand management.
