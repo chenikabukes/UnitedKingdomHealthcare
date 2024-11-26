@@ -8,60 +8,162 @@
 
 #### Workspace setup ####
 library(arrow)
+library(readxl)
 library(tidyverse)
+library(stringr)
+library(dplyr)
 
 #### Process and merge datasets ####
 
 # 1. Load and process the waiting times data
-waiting_times_data <- read_parquet("./data/01-raw_data/waiting_times.parquet") |>
-  filter(Reference.area == "United Kingdom" & 
-           TIME_PERIOD >= 2015 & 
-           TIME_PERIOD <= 2019) |>
-  select(TIME_PERIOD, OBS_VALUE, Medical.procedure) |>
-  rename(
-    Year = TIME_PERIOD,
-    WaitTime = OBS_VALUE
-  ) |>
-  pivot_wider(
-    names_from = Medical.procedure,
-    values_from = WaitTime,
-    names_prefix = "WaitTime_"
-  ) |>
-  arrange(Year)
+# Define the path to the folder containing the Excel files for waiting times
+file_path <- "./data/01-raw_data"  
+file_list <- list.files(file_path, pattern = "*.xls", full.names = TRUE)
 
-# Calculate percentage increase for each operation relative to 2015
-wait_times_percentage <- waiting_times_data |>
-  mutate(across(
-    starts_with("WaitTime_"),
-    ~ round((. / .[Year == 2015] - 1) * 100, 2),  # Calculate percentage increase and round to 2 decimals
-    .names = "Pct_{.col}"               
-  ))
+# Define treatment function names (before and after April 2021)
+treatment_names_before_2021 <- c(
+  "General Surgery", "Urology", "Trauma & Orthopaedics", "ENT", "Ophthalmology", 
+  "Oral Surgery", "Neurosurgery", "Plastic Surgery", "Cardiothoracic Surgery", 
+  "General Medicine", "Gastroenterology", "Cardiology", "Dermatology", 
+  "Thoracic Medicine", "Neurology", "Rheumatology", "Geriatric Medicine", 
+  "Gynaecology", "Other", "Total"
+)
 
-# Add percentage increase columns for each operation relative to 2015
-waiting_times_percentage <- waiting_times_data |>
-  mutate(across(
-    starts_with("WaitTime_"),
-    ~ round((. / .[Year == 2015] - 1) * 100, 2),  # Calculate percentage increase and round to 2 decimals
-    .names = "Pct_{.col}"  # Add prefix "Pct_" to new columns
-  ))
+treatment_names_after_2021 <- c(
+  "General Surgery Service", "Urology Service", "Trauma and Orthopaedic Service", 
+  "Ear Nose and Throat Service", "Ophthalmology Service", "Oral Surgery Service", 
+  "Neurosurgical Service", "Plastic Surgery Service", "Cardiothoracic Surgery Service", 
+  "General Internal Medicine Service", "Gastroenterology Service", "Cardiology Service", 
+  "Dermatology Service", "Respiratory Medicine Service", "Neurology Service", 
+  "Rheumatology Service", "Elderly Medicine Service", "Gynaecology Service", 
+  "Other - Medical Services", "Other - Mental Health Services", "Other - Paediatric Services", 
+  "Other - Surgical Services", "Other - Other Services", "Total"
+)
 
-# Calculate average percentage increase across all operations
-wait_times_percentage <- wait_times_percentage |>
-  rowwise() |>
-  mutate(
-    Pct_Wait_Avg = round(mean(c_across(starts_with("Pct_")), na.rm = TRUE), 2)  # Av
-  ) |>
+# Create a mapping for renaming columns
+rename_mapping <- c(
+  "General Surgery Service" = "General Surgery",
+  "Urology Service" = "Urology",
+  "Trauma and Orthopaedic Service" = "Trauma & Orthopaedics",
+  "Ear Nose and Throat Service" = "ENT",
+  "Ophthalmology Service" = "Ophthalmology",
+  "Oral Surgery Service" = "Oral Surgery",
+  "Neurosurgical Service" = "Neurosurgery",
+  "Plastic Surgery Service" = "Plastic Surgery",
+  "Cardiothoracic Surgery Service" = "Cardiothoracic Surgery",
+  "General Internal Medicine Service" = "General Medicine",
+  "Gastroenterology Service" = "Gastroenterology",
+  "Cardiology Service" = "Cardiology",
+  "Dermatology Service" = "Dermatology",
+  "Respiratory Medicine Service" = "Thoracic Medicine",
+  "Neurology Service" = "Neurology",
+  "Rheumatology Service" = "Rheumatology",
+  "Elderly Medicine Service" = "Geriatric Medicine",
+  "Gynaecology Service" = "Gynaecology",
+  "Other - Medical Services" = "Other",
+  "Other - Mental Health Services" = "Other",
+  "Other - Paediatric Services" = "Other",
+  "Other - Surgical Services" = "Other",
+  "Other - Other Services" = "Other",
+  "Total" = "Total"
+)
+
+# Function to process and extract relevant columns from each file
+process_file <- function(file) {
+  # Read the Excel file
+  data <- read_excel(file, skip = 13) 
+  
+  # Extract month and year from file name
+  month_year <- str_extract(basename(file), "[A-Za-z]{3}[0-9]{2}")
+  year <- as.numeric(paste0("20", substr(month_year, 4, 5)))  # Extract year
+  
+  # Standardize column names
+  colnames(data) <- tolower(colnames(data))
+  
+  # Check if necessary columns exist
+  if (!("treatment function" %in% colnames(data)) || 
+      !"average (median) waiting time (in weeks)" %in% colnames(data)) {
+    warning(paste("File skipped (missing columns):", file))
+    return(NULL)
+  }
+  
+  # Extract relevant columns and add year/month
+  data <- data %>%
+    select(
+      treatment_function = `treatment function`, 
+      average_waiting_time = `average (median) waiting time (in weeks)`
+    ) %>%
+    mutate(Year = year, Month_Year = month_year)
+  
+  return(data)
+}
+
+# Process all files and combine the data
+all_data <- bind_rows(lapply(file_list, process_file), .id = "File_ID")
+
+# Standardize treatment function names
+all_data <- all_data %>%
+  mutate(treatment_function = case_when(
+    Year < 2021 & treatment_function %in% treatment_names_before_2021 ~ treatment_function,
+    Year >= 2021 & treatment_function %in% names(rename_mapping) ~ rename_mapping[treatment_function],
+    TRUE ~ NA_character_  
+  )) %>%
+  filter(!is.na(treatment_function)) %>%
+  filter(!is.na(treatment_function) & treatment_function != "Other")
+
+# Calculate yearly averages for each treatment function
+yearly_averages <- all_data %>%
+  group_by(Year, treatment_function) %>%
+  summarize(Average_Waiting_Time = mean(average_waiting_time, na.rm = TRUE)) %>%
   ungroup()
 
-# Merge only the average percentage increase with the predictors
-wait_times_data <- wait_times_percentage |>
-  select(Year, starts_with("WaitTime_"), Pct_Wait_Avg)
+# Pivot the data so that years are rows and treatment functions are columns
+wide_yearly_averages <- yearly_averages %>%
+  pivot_wider(names_from = treatment_function, values_from = Average_Waiting_Time)
+
+wide_yearly_averages <- wide_yearly_averages %>%
+  mutate(
+    ENT = case_when(
+      Year == 2019 ~ 14.9502,  # Set the value for 2019
+      Year == 2020 ~ 15.216,   # Set the value for 2020
+      TRUE ~ ENT              # Retain existing values for other years
+    )
+  )
+
+# Calculate percent change from 2015 levels with robust handling of NA values
+wide_yearly_averages_percent_change <- wide_yearly_averages %>%
+  mutate(across(
+    -Year,  # Exclude the 'Year' column from the calculation
+    ~ ifelse(!is.na(.) & !is.na(first(.)), (.) / first(.) * 100 - 100, NA),  # Calculate percent change, handle NA
+    .names = "{.col}_percent_change"  # Rename columns to indicate percent change
+  ))
+
+# Drop the original columns and retain only the percent change columns
+wide_yearly_averages_percent_change <- wide_yearly_averages_percent_change %>%
+  select(Year, ends_with("_percent_change")) %>%
+  rename_with(~ gsub("_percent_change", "", .), ends_with("_percent_change"))  # Rename back to original names
+
+# Rename columns to keep only the first word for treatment names and resolve duplicates
+wide_yearly_averages_percent_change <- wide_yearly_averages_percent_change %>%
+  rename_with(~ {
+    # Extract the first word
+    renamed <- sapply(strsplit(., " "), `[`, 1)
+    # Handle duplicates
+    duplicated_names <- duplicated(renamed) | duplicated(renamed, fromLast = TRUE)
+    renamed[duplicated_names] <- ifelse(
+      renamed[duplicated_names] == "General",
+      paste0(renamed[duplicated_names], c("_S", "_M")),  # Assign suffix for Surgery and Medicine
+      renamed[duplicated_names]
+    )
+    renamed
+  }, -Year)
+
 
 # 2. Load and process the physician data
-physician_data <- read_parquet("./data/01-raw_data/number_physicians.parquet") |>
+physician_data <- read.csv("./data/01-raw_data/number_physicians.csv") |>
   filter(Reference.area == "United Kingdom" & 
            TIME_PERIOD >= 2015 & 
-           TIME_PERIOD <= 2019) |>
+           TIME_PERIOD <= 2022) |>
   select(TIME_PERIOD, OBS_VALUE) |>
   rename(
     Year = TIME_PERIOD,
@@ -69,11 +171,20 @@ physician_data <- read_parquet("./data/01-raw_data/number_physicians.parquet") |
   ) |>
   arrange(Year)
 
+# Assuming `physician_data` is your dataframe
+physician_data <- physician_data %>%
+  group_by(Year) %>%
+  filter(abs(number_physicians - 3) == min(abs(number_physicians - 3))) %>%
+  ungroup() |>
+  rename(
+    physicians_per_1000 = number_physicians
+  )
+
 # 3. Load and process the hospital beds data
-beds_data <- read_parquet("./data/01-raw_data/hospital_beds.parquet") |>
+beds_data <- read.csv("./data/01-raw_data/hospital_beds.csv") |>
   filter(Reference.area == "United Kingdom" & 
            TIME_PERIOD >= 2015 & 
-           TIME_PERIOD <= 2019) |>
+           TIME_PERIOD <= 2022) |>
   select(TIME_PERIOD, OBS_VALUE) |>
   rename(
     Year = TIME_PERIOD,
@@ -81,17 +192,9 @@ beds_data <- read_parquet("./data/01-raw_data/hospital_beds.parquet") |>
   ) |>
   arrange(Year)
 
-# 4. Load and process the population data
-population_data <- read_parquet("./data/01-raw_data/population_estimate.parquet") |>
-  filter(str_detect(Title, "^\\d{4}$")) |>
-  mutate(Year = as.numeric(Title)) |>
-  mutate(Population = as.numeric(gsub(",", "", `United Kingdom population mid-year estimate`))) |>
-  filter(Year >= 2015 & Year <= 2019) |>
-  select(Year, Population)
-
-# 5. Load and process the A&E data
-a_and_e_data <- read_parquet("./data/01-raw_data/a_and_e_activity_data_full.parquet") |>
-  filter(Year >= 2015 & Year <= 2019) |>
+# 4. Load and process the A&E data
+a_and_e_data <- read.csv("./data/01-raw_data/a_and_e_activity_data_full.csv") |>
+  filter(Year >= 2015 & Year <= 2022) |>
   pivot_wider(
     names_from = Type,
     values_from = Percentage
@@ -105,42 +208,38 @@ a_and_e_data <- read_parquet("./data/01-raw_data/a_and_e_activity_data_full.parq
   ) |>
   select(Year, emergency_admit, attendance)
 
-# 6. Merge all predictors with wait times and population
-final_data <- hospital_data |>
-  left_join(physician_data, by = "Year") |>
+# 5. Merge all predictors with wait times and population
+final_data <- physician_data |>
   left_join(beds_data, by = "Year") |>
-  left_join(population_data, by = "Year") |>
   left_join(a_and_e_data, by = "Year") |>
-  left_join(wait_times_data, by = "Year") |>
-  mutate(
-    physicians_per_1000 = number_physicians / (Population / 1000)
-  ) |>
-  select(-number_physicians, -Population) |>
+  left_join(wide_yearly_averages_percent_change, by = "Year") |>
   select(
     Year, 
     beds_per_1000, 
     physicians_per_1000, 
     attendance,
-    starts_with("WaitTime_"),
-    Pct_Wait_Avg
+    Cardiology,
+    Cardiothoracic,
+    Dermatology,
+    ENT,
+    Gastroenterology,
+    General_S,
+    General_M,
+    Geriatric,
+    Gynaecology,
+    Neurology,
+    Neurosurgery,
+    Ophthalmology,
+    Oral,
+    Plastic,
+    Rheumatology,
+    Thoracic, 
+    Trauma,
+    Urology,
+    Total
   )
-
-# Rename waiting times columns for clarity
-final_data <- final_data |>
-  rename(
-    Wait_CorGraft = `WaitTime_Coronary artery bypass graft`,
-    Wait_Angioplasty = `WaitTime_Transluminal coronary angioplasty`,
-    Wait_Knee = `WaitTime_Knee replacement (including the revision of knee replacement)`,
-    Wait_Hip = `WaitTime_Hip replacement (total and partial, including the revision of hip replacement)`,
-    Wait_Cataract = `WaitTime_Cataract surgery`,
-    Wait_Prostatectomy = `WaitTime_Prostatectomy`,
-    Wait_Hysterectomy = `WaitTime_Hysterectomy`
-  ) 
 
 
 #### Save final dataset ####
-
-# Save the merged dataset
-write_csv(final_data, "./data/02-analysis_data/final_healthcare_data.csv")
 write_parquet(final_data, "./data/02-analysis_data/final_healthcare_data.parquet")
-
+write.csv(final_data, "./data/02-analysis_data/final_healthcare_data.csv")

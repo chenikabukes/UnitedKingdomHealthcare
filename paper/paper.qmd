@@ -23,6 +23,7 @@ library(knitr)
 library(arrow)
 library(gridExtra)
 library(modelsummary)
+library(patchwork)
 ```
 
 
@@ -32,6 +33,8 @@ Timely access to healthcare is fundamental to achieving optimal health outcomes.
 
 This paper investigates how hospital infrastructure, workforce availability, and patient demand influence wait times for medical procedures across the UK. Specifically, it examines the roles of hospital beds per capita, physicians per 1,000 inhabitants, and Type 1 attendance rates in shaping delays for procedures like knee replacements, coronary artery bypass grafts, and cataract surgeries. While previous studies have explored individual contributors to wait times, this analysis integrates multiple predictors to provide a holistic view of systemic pressures.
 
+The estimand in this study is the average percentage change in wait times for seven key medical procedures: knee replacements, hip replacements, prostatectomy, hysterectomy, coronary artery bypass grafts, transluminal coronary angioplasty, and cataract surgeries in the UK. The estimand will be modeled as a function of three predictors: hospital beds per 1,000 inhabitants, physicians per 1,000 inhabitants, and Type 1 major care attendance rates. This measure quantifies how changes in healthcare infrastructure and demand impact system-wide delays, offering insights into the relative contribution of each predictor to observed wait times.
+
 The findings reveal that declining hospital bed availability has a pronounced negative impact on wait times, while higher physician density and attendance rates are associated with additional delays, potentially due to demand outstripping capacity. These results emphasize the need for a balanced approach to resource allocation, combining infrastructure investment with demand management strategies.
 
 Understanding the drivers of wait times is vital for improving healthcare access and efficiency [@king]. By identifying the factors contributing to delays, this paper offers actionable insights for policymakers and healthcare administrators seeking to enhance patient outcomes and system resilience. The remainder of this paper is structured as follows: @sec-data details the data and methodology, @sec-model presents the model used for analysis of the data, @sec-results presents the key results from the model, and @sec-discussion concludes with final analysis of the results and recommendations for future research.
@@ -40,27 +43,29 @@ Understanding the drivers of wait times is vital for improving healthcare access
 
 ## Overview
 
-In this paper, the analysis will be carried out using the statistical programming language `R` [@citeR], using the haven and `tidyverse` [@citeTidy], `devtools` (Wickham, Hester, and Chang 2020) and `dplyr` (Wickham et al. 2021). All figures in the report are generated using `ggplot2` [@citeGG]. We run the model in R [@citeR] using the `modelsummary` package of [@modelsummary].
+In this paper, the analysis will be carried out using the statistical programming language `R` [@citeR], using the haven and `tidyverse` [@citeTidy], `devtools` (Wickham, Hester, and Chang 2020) and `dplyr` (Wickham et al. 2021). All figures in the report are generated using `ggplot2` [@citeGG] and `patchwork` [@patchwork]. We run the model in R [@citeR] using the `modelsummary` package of [@modelsummary].
 
 This report integrates data from two key sources: the NHS and the OECD. These datasets provide critical information to analyze trends in healthcare demand and resources in the United Kingdom.
 
-The NHS A&E Attendances and Emergency Admissions dataset [@attendance] captures the monthly demand for emergency services. It includes the total number of attendances at Accident & Emergency (A&E) departments and emergency admissions, alongside measures of wait times for admission. These statistics, collected at the provider organization level, are drawn from NHS Trusts, Foundation Trusts, and independent sector organizations. The data was aggregated from monthly submissions, a change implemented after Sir Bruce Keogh’s review of waiting time standards. The dataset includes attendance and admission figures indexed to pre-pandemic and earlier baseline levels, enabling us to monitor trends and variations across years.
+The NHS Referral to Treatment (RTT) waiting times dataset [@wait] is the primary source for waiting time statistics. These data measure the median time (in weeks) between referral by a general practitioner (GP) and the start of treatment for elective care, capturing delays across 15 key medical procedures such as general surgery, urology, and trauma & orthopedics. This dataset offers procedure-specific insights that allow for cross-procedure and temporal comparisons.
 
-The remaining datasets are sourced from the OECD Health Statistics 2024 database [@health], which provides standardized, internationally comparable data across healthcare systems. The OECD collaborates with organizations such as the United Nations and Eurostat to develop robust methodologies and benchmarks for health statistics. For the United Kingdom, data on hospital resources (e.g., hospital counts and bed availability), physician counts, and other health system metrics are provided by various entities like NHS Digital and Public Health Scotland. The OECD ensures consistency and comparability of this data through rigorous quality checks and methodological adjustments.
+The NHS A&E Attendances and Emergency Admissions dataset [@attendance] captures the monthly demand for emergency services. It includes the total number of attendances at Accident & Emergency (A&E) departments and emergency admissions, alongside measures of wait times for admission. These statistics are collected at the provider organization level from NHS Trusts, Foundation Trusts, and independent sector organizations. The data are aggregated from monthly submissions, a system adopted following Sir Bruce Keogh’s review of waiting time standards, and include attendance and admission figures.
+
+Additional datasets are sourced from the OECD Health Statistics 2024 database [@health], which provides standardized, internationally comparable data on healthcare systems. For the United Kingdom, the OECD compiles data on hospital resources hospital beds and physician counts from NHS Digital and Public Health Scotland. The OECD ensures consistency and comparability of this data through rigorous quality checks and methodological adjustments, making it a reliable complement to NHS data for the analysis.
 
 ## Measurement
-**Physicians per 1,000** [@physicians]. Physician counts are sourced from the OECD, relying on NHS Digital, Public Health Scotland, and the General Medical Council (GMC). The data reflect licensed physicians, encompassing both general practitioners and specialists. The metric is calculated as the total number of physicians per 1,000 population. The dataset includes both headcount and rolecount metrics, with post-2009 data transitioning to headcount for greater accuracy. Physician counts include GP retainers and full-time equivalents, providing an accurate picture of the available workforce. Historical data adjustments account for changes in collection methodologies. Similar datasets include WHO and Eurostat health statistics offer broader regional comparisons but lack the granularity needed for a UK-focused study.
+**Physicians per 1,000** [@physicians]. Physician counts are sourced from the OECD, relying on NHS Digital, Public Health Scotland, and the General Medical Council (GMC). The data reflect licensed physicians, encompassing both general practitioners and specialists. The metric is calculated as the total number of physicians per 1,000 population. The dataset includes both headcount and rolecount metrics, with post-2009 data transitioning to headcount for greater accuracy. Physician counts include GP retainers and full-time equivalents, providing an accurate picture of the available workforce. Historical data adjustments account for changes in collection methodologies.  The data are collected and reported monthly through NHS administrative systems, with automated validation checks ensuring accuracy and consistency. Similar datasets include WHO and Eurostat health statistics offer broader regional comparisons but lack the granularity needed for a UK-focused study. [@https://turasdata.nes.nhs.scot/about-our-data-and-reports/methods/nhsscotland-workforce-data-warehouse/]
 
 **Beds per 1,000 Population** [@beds]: This metric, provided by the OECD, uses data from NHS Digital, Public Health Scotland, and national agencies across the UK. It tracks the availability of inpatient beds. Annual averages of beds available overnight in public hospitals. Includes acute care and psychiatric beds but excludes private sector facilities for consistency. Data are for financial years and represent publicly funded healthcare infrastructure. No significant methodological breaks are noted for this variable.
 
-**Type 1 Major Care Attendances** [@attendance]: These figures represent percentages indexed to the baseline year 2011, providing a normalized measure of demand changes over time. The NHS uses administrative records to capture real-time data from provider organizations. The NHS employs administrative records to capture real-time data, validated through internal processes to mitigate potential inconsistencies or reporting delays. However, some unreported data at the trust level (e.g., support facilities and non-inpatient services) are excluded, which may lead to minor underestimations. Its about type 1 emergency admissions which are major 
+**Type 1 Major Care Attendances** [@attendance]: These figures represent percentages indexed to the baseline year 2011, providing a normalized measure of demand changes over time. The NHS employs administrative records to capture real-time data, validated through internal processes to mitigate potential inconsistencies or reporting delays. However, some unreported data at the trust level (e.g., support facilities and non-inpatient services) are excluded, which may lead to minor underestimations. Type 1 Major Care is defined as major emergency departments that provide a consultant-led 24-hour service with full facilities for resuscitating patients [@care]. 
 
-**Waiting Times for Key Medical Procedures** [@wait]: Waiting time data are sourced from the OECD, which uses NHS data for the United Kingdom. The dataset covers average waiting times for seven key procedures, including knee replacements and coronary artery bypass grafts. Procedure-Specific Wait Times: Measured in months, these reflect the average time in the NHS between referral and procedure. This dataset includes detailed procedure-specific insights, allowing for cross-procedure comparisons. Data validation is conducted at both the NHS and OECD levels to ensure reliability.
+**Waiting Times for Key Medical Procedures** [@wait]: Waiting time data are sourced directly from NHS England’s Referral to Treatment (RTT) waiting times statistics, as published on NHS England’s statistics portal. These statistics measure the time elapsed between a patient’s referral by a general practitioner (GP) and the initiation of treatment, providing insights into NHS performance. Waiting times are calculated as the median duration (in weeks) for patients to begin their procedures, ensuring consistency across treatment categories. The dataset includes procedure-specific insights for key medical interventions such as general surgery, urology, and trauma & orthopedics, among others, enabling cross-procedure comparisons. Data are collected monthly through NHS administrative systems and validated using automated checks and standardized reporting protocols to ensure accuracy and consistency. 
 
-**Overall**: All datasets rely on administrative data validated by their respective agencies, minimizing reporting errors. While historical methodological changes (e.g., hospital reporting standards) necessitated adjustments, these do not affect the study's time period from 2015 to 2019. Similar datasets from organizations like WHO or Eurostat could offer supplementary insights but were not utilized due to a lack of UK-specific detail and consistency.
+**Overall**: All datasets rely on administrative data validated by their respective agencies, minimizing reporting errors. While historical methodological changes (e.g., hospital reporting standards) necessitated adjustments, these do not affect the study's time period from 2015 to 2019. Similar datasets from the World Health Organization (WHO) could offer supplementary insights but were not utilized due to a lack of UK-specific detail.
 
 ## Methodology {#sec-methodology}
-EXPLAIN HOW YOU CLEANED DATA HERE 
+The data cleaning method is described in @sec-cleaning. All data cleaning was done using `arrow` [@arrow], `tidyverse` [@tidyverse], `readxl` [@readxl], and `stringr` [@stringr]. Below is a snapshot of the first five rows of the key data columns which will be used for this paper. @tbl-data-appendix provides the entire cleaned dataset in table format. 
 
 ```{r}
 #| echo: false
@@ -72,88 +77,48 @@ EXPLAIN HOW YOU CLEANED DATA HERE
 cleaned_data <- read_parquet("../data/02-analysis_data/final_healthcare_data.parquet")
 
 # Split the table into smaller parts
-part1 <- cleaned_data[, 1:4]  
-part2 <- cleaned_data[, 4:ncol(cleaned_data)]
+part1 <- cleaned_data[, c(1:4, which(colnames(cleaned_data) == "Total"))]
 
 # Display the first part of the table
 kable(head(part1), 
       caption = "Part 1: Hospital statistics")
 ```
-```{r}
-#| echo: false
-#| warning: false
-#| error: false
-#| label: tbl-data-2
-#| tbl-cap: "Wait times for medical procedures displayed separately"
 
-# Update column names for the second part of the table
-colnames(part2) <- gsub("^Wait_", "", colnames(part2))
-
-# Display the second part of the table
-kable(head(part2), 
-      caption = "Part 2: Wait Times for Key Medical Procedures in Months")
-
-```
-@tbl-data presents the cleaned dataset presents hospital and healthcare statistics, consisting of 10 variables and 5 observations spanning the years 2015 to 2019. The variables include year, hospitals per 1,000,000 inhabitants, beds per 1,000 inhabitants, physicians per 1,000 inhabitants, emergency admissions, and attendance rates. Additional variables capture wait times (in months) for key medical procedures such as coronary grafts, angioplasty, knee surgery, hip surgery, cataract surgery, hysterectomy, and prostatectomy. The average percentage increase in wait times was calculated relative to 2015. All metrics are standardized based on population or healthcare utilization data for each year.
+@tbl-data presents United Kingdom hospital and healthcare statistics from the cleaned dataset, consisting of 10 variables and 8 observations spanning the years 2015 to 2022. The variables include year, beds per 1,000 inhabitants, physicians per 1,000 inhabitants, and Type 1 major care attendance rates. Additional variables capture wait times (in percent change from 2015 levels) for key treatment areas such as cardiology, ENT, gynaecology, plastic surgery and neurosurgery. In @tbl-data we see the average percentage change in wait times from 2015 levels in the `Total` column. All metrics are standardized based on population or healthcare utilization data for each year.
 
 ## Outcome variables
 
+@fig-data depicts the percentage increase in wait times for various medical procedures compared to 2015. By 2019, most procedures show a notable increase in wait times, with angioplasty and prostatectomy exhibiting the largest rises. While some procedures, such as knee and hip surgeries, show consistent increases, others, like prostatectomy, initially decline before rising sharply. The steady increase across most procedures highlights a systemic trend of growing delays in accessing medical care, potentially signaling resource limitations or increased demand in healthcare services. Overall, wait times have risen by over 20% since 2015, further emphasizing the need for targeted interventions to improve healthcare accessibility and efficiency.
+
 ```{r}
 #| echo: false
 #| warning: false
 #| error: false
-#| label: fig-data
-#| tbl-cap: "Percentage Increase in Wait Times Compared to 2015 for Key Medical Procedures and Overall Average"
-# Calculate percentage change for each medical procedure
-cleaned_data <- cleaned_data |>
-  mutate(across(
-    starts_with("Wait_"), 
-    ~ round((. / .[Year == 2015] - 1) * 100, 2),  # Calculate percentage change relative to 2015
-    .names = "Pct_{.col}"  # Prefix the new columns with "Pct_"
-  ))
+#| label: fig-total
+#| tbl-cap: "Percentage Increase in Total Wait Times Compared to 2015"
 
-# Reshape the percentage increase data to long format for plotting
-long_wait_pct_data <- cleaned_data |>
-  pivot_longer(
-    cols = starts_with("Pct_Wait_"), 
-    names_to = "Medical_Procedure",
-    values_to = "Pct_Change"
-  ) |>
-  mutate(
-    Medical_Procedure = ifelse(Medical_Procedure == "Pct_Wait_Avg", "Average Wait Time", 
-                               gsub("Pct_Wait_", "", Medical_Procedure))  # Clean up procedure names
-  )
 
-# Plot all percentage increases on the same plot, including the average
-ggplot(long_wait_pct_data, aes(x = Year, y = Pct_Change, color = Medical_Procedure, group = Medical_Procedure)) +
-  geom_line(aes(linetype = Medical_Procedure), size = 1) +
-  geom_point(size = 2) +
-  scale_color_manual(
-    values = c(
-      "Average Wait Time" = "black",
-      setNames(rainbow(length(unique(long_wait_pct_data$Medical_Procedure)) - 1), 
-               unique(long_wait_pct_data$Medical_Procedure)[unique(long_wait_pct_data$Medical_Procedure) != "Average Wait Time"])
-    )
-  ) +
-  scale_linetype_manual(
-    values = c(
-      "Average Wait Time" = "dashed",
-      setNames(rep("solid", length(unique(long_wait_pct_data$Medical_Procedure)) - 1), 
-               unique(long_wait_pct_data$Medical_Procedure)[unique(long_wait_pct_data$Medical_Procedure) != "Average Wait Time"])
-    )
-  ) +
+# Plot for the "Total" column
+ggplot(long_wait_pct_data %>% filter(Treatment == "Total"), 
+       aes(x = Year, y = Pct_Change, group = Treatment)) +
+  geom_line(size = 1, color = "black") +
+  geom_point(size = 2, color = "black") +
   labs(
-    title = "Percentage Increase in Wait Times Compared to 2015",
+    title = "Percentage Change in Total Wait Times Compared to 2015",
     x = "Year",
-    y = "Percentage Increase (%)",
-    color = "Medical Procedure",
-    linetype = "Medical Procedure"
+    y = "Percentage Change (%)",
+    color = NULL
   ) +
   theme_minimal() +
-  theme(legend.position = "bottom")
+  theme(
+    legend.position = "none",
+    text = element_text(size = 14)
+  )
+
 
 ```
-@fig-data depicts the percentage increase in wait times for various medical procedures compared to 2015. By 2019, most procedures show a notable increase in wait times, with angioplasty and prostatectomy exhibiting the largest rises. While some procedures, such as knee and hip surgeries, show consistent increases, others, like prostatectomy, initially decline before rising sharply. The steady increase across most procedures highlights a systemic trend of growing delays in accessing medical care, potentially signaling resource limitations or increased demand in healthcare services. Overall, wait times have risen by over 20% since 2015, further emphasizing the need for targeted interventions to improve healthcare accessibility and efficiency.
+
+@fig-total shows the percentage increase in total wait times for key medical procedures in the UK relative to 2015, revealing a steady rise through 2019, followed by fluctuations during the COVID-19 pandemic. The moderate growth between 2015 and 2019 suggests manageable strain on healthcare resources, but the dip in 2020 reflects reduced elective procedures as hospitals prioritized emergency care. This was followed by a sharp increase in 2021 and a steep surge in 2022, likely due to the backlog created during the pandemic, ongoing demand pressures, and resource constraints. These trends underscore the urgent need for targeted healthcare interventions, including expanded capacity, streamlined workflows, and policies to address the post-pandemic backlog and increasing demand.
 ## Predictor variables
 
 ### Hospital Beds per 1,000
@@ -169,7 +134,7 @@ ggplot(cleaned_data, aes(x = Year, y = beds_per_1000)) +
   theme_minimal()
 ```
 
-@fig-beds shows a steady decline in hospital beds per 1,000 inhabitants from 2015 to 2019, decreasing from approximately 2.6 to 2.45 beds. This consistent downward trend suggests a reduction in bed capacity relative to population growth, potentially indicating healthcare system pressures such as resource reallocation, efficiency measures, or underinvestment in infrastructure. The decline highlights the need to assess the impact on patient care and explore strategies to balance population needs with available resources.
+@fig-beds shows a steady decline in hospital beds per 1,000 inhabitants from 2015 to 2020, decreasing from approximately 2.6 to 2.45 beds. This consistent downward trend indicates a reduction in bed capacity relative to population growth, reflecting potential healthcare system pressures such as resource reallocation, efficiency measures, or underinvestment in infrastructure. However, a slight rebound is observed in 2021 and 2022, with the number of beds per 1,000 inhabitants stabilizing at just above 2.45. This recent stabilization could suggest efforts to address capacity constraints or temporary adjustments in response to the increased demand for hospital resources during the COVID-19 pandemic. The trend underscores the importance of evaluating the impact of long-term capacity changes on patient care and exploring strategies to ensure sufficient resources to meet population needs.
 
 ### Physicians per 1,000
 
@@ -185,7 +150,7 @@ ggplot(cleaned_data, aes(x = Year, y = physicians_per_1000)) +
   theme_minimal()
 ```
 
-@fig-physicians shows a steady increase in the number of physicians per 1,000 inhabitants from 2015 to 2019, rising from approximately 2.0 to 2.15. This consistent growth indicates an improvement in physician availability relative to population size, potentially reflecting increased investment in healthcare workforce development or recruitment efforts. The trend suggests progress in addressing healthcare access, but further analysis is needed to determine whether this growth aligns with demand and regional healthcare needs.
+@fig-physicians shows a steady increase in the number of physicians per 1,000 inhabitants from 2015 to 2022, rising from approximately 2.8 to 3.2. This consistent growth reflects an improvement in physician availability relative to population size, likely driven by increased investment in healthcare workforce development, recruitment efforts, and possibly adjustments in healthcare policies. The marked acceleration between 2019 and 2021 may reflect efforts to bolster healthcare capacity during the COVID-19 pandemic. While this trend highlights progress in enhancing workforce availability, further analysis is needed to assess whether these increases adequately meet rising healthcare demands and address regional disparities in physician distribution.
 
 ### Demand for Services 
 ```{r}
@@ -207,20 +172,16 @@ ggplot(cleaned_data) +
   theme_minimal() +
   theme(legend.position = "bottom")
 ```
-@fig-attendance-demand illustrates the percentage change in Type 1 Major Care Attendance (A&E Attendances) in the UK from 2015 to 2019. A&E attendances showed a modest, steady increase over the observed period, plateauing slightly by 2019. This trend highlights the growing demand for emergency services and underscores the need for further investigation into factors contributing to increased attendance, such as population growth, access to primary care, or changes in healthcare-seeking behavior. Addressing these factors through improved preventive and community-based care could help reduce the burden on emergency services.
+@fig-attendance-demand illustrates the percentage change in Type 1 Major Care Attendance (A&E Attendances) in the UK from 2015 to 2022. Between 2015 and 2019, A&E attendances showed a modest, steady increase, reflecting a growing demand for emergency services. However, there was a sharp decline in 2020, likely attributable to the COVID-19 pandemic and related restrictions, which disrupted normal healthcare-seeking behavior. Attendance levels rebounded significantly in 2021, surpassing pre-pandemic levels, and remained stable through 2022. This trend highlights both the resilience of demand for emergency services and the need for strategies to manage surges in attendance effectively, such as enhancing access to primary care and preventive healthcare services.
 
 # Model {#sec-model}
-After conducting exploratory analysis on the dataset, we observed relationships between healthcare system factors (e.g., number of physicians, hospital beds per 1,000 people, and attendance rates) and wait times for medical procedures. These variables show potential predictive power, indicating a linear relationship. To further investigate and make predictions about how these factors influence wait times, we will implement a linear regression model.
+After conducting exploratory analysis on the dataset, we observed relationships between healthcare system factors (e.g., physicians per 1,000 people, hospital beds per 1,000 people, and Type 1 attendance rates) and wait times for medical procedures. These variables indicate potential predictive power, suggesting a linear relationship. To further investigate and quantify how these factors influence wait times, we implemented a linear regression model.
 
 The goal of this linear regression model is to estimate the coefficients $\beta_0, \beta_1, \beta_3$ such that the model fits the data well and provides insights into how each predictor contributes to wait times for medical procedures. Additionally, this model will enable predictions of wait times under different healthcare conditions.
 
-The statistical significance of each $\beta_k$ coefficient will be assessed using a t-test, testing whether the coefficient is significantly different from zero. If the p-value for a coefficient is less than a chosen significance level (e.g., 0.05), we can conclude that the corresponding predictor has a significant effect on wait times.
+The statistical significance of each $\beta_k$ coefficient will be assessed using a t-test, testing whether the coefficient is significantly different from zero. If the p-value for a coefficient is less than a chosen significance level, we can conclude that the corresponding predictor has a significant effect on wait times.
 
 ## Model set-up
-This model framework allows us to evaluate the influence of healthcare system factors (like hospital and physician availability) on wait times for specific procedures. Understanding these relationships is critical for designing policies aimed at reducing wait times and improving healthcare delivery.
-
-We expect a positive relationship between the average percentage increase in wait times (Pct_Wait_Time) and healthcare system pressures, such as a decline in the number of hospital beds per 1,000 inhabitants or hospitals per million people. Conversely, we anticipate a negative relationship between Pct_Wait_Time and the availability of physicians per 1,000 inhabitants, as greater physician availability could lead to faster patient care and reduced wait times.
-
 The final model is displayed here:
 
 $$
@@ -228,13 +189,14 @@ Y_{i} = \beta_0 + \beta_1X_{1i} + \beta_2X_{2i} + \beta_3X_{3i} + \epsilon_{i}
 $$
 
 \begin{align} 
-Y_{ij} & = \text{The average percentage change in wait time for the 7 specific medical procedures in year } i. \\
+Y_{ij} & = \text{The average percentage change in wait time for the 15 specific medical procedures in year i}. \\
 X_{1i}, X_{2i}, X_{3i} & = \text{The independent variables of physicians per 1000 people, beds per 1000 people, and Type 1 attendance for procedure } j \text{ in year } i. \\
-\beta_0 & = \text{The intercept or constant term, representing the expected wait time when all predictors are zero.} \\
+\beta_0 & = \text{The intercept or constant term, representing the expected wait time when all predictors are zero.} \
 \beta_1, \beta_2, \beta_3 & = \text{The slope coefficients for the predictors, representing the estimated change in wait time for a one-unit increase in the respective predictor.} \\
 \epsilon_{i} & = \text{The error term, representing the deviation of the actual wait time from the predicted wait time based on the regression equation.}
 \end{align}
 
+The goal of the linear regression model is to estimate the values of \beta_1, \beta_2, and \beta_3 such that the model fits the data well and to predict the expected value of the average total waiting time for procedures for different values of physician rates, hospital bed rates, and type 1 major care attendance. The statistical significance of 1 can be assessed using a t-test, which tests whether the estimated coeﬀicient is significantly different from zero. If the p-value of the t-test for each coefficient is less than a chosen significance level, we can conclude that there is a significant relationship between the average percentage change in wait time and the healthcare predictors.
 
 Each predictor variable is expected to contribute uniquely:
 
@@ -242,7 +204,7 @@ Each predictor variable is expected to contribute uniquely:
 - Physicians per 1,000 inhabitants (X_2): Greater physician availability is hypothesized to decrease wait times.
 - Attendance Rates (X_3): Increased attendance could indicate growing demand on the healthcare system, potentially leading to longer wait times.
 
-We run the model in R [@citeR] using the `modelsummary` package of...
+We run the model in R [@citeR] using the `modelsummary` package of `rsaratnam` [@rsaratnam].
 
 
 ### Model justification
@@ -252,8 +214,6 @@ This model framework allows us to evaluate the impact of key healthcare system f
 We expect to confirm that reduced healthcare resources (fewer hospital beds, lower physician availability), and increased demand (more tpe 1 attendances) are associated with longer wait times, while better resource availability can mitigate delays. This analysis will help identify key leverage points for optimizing resource allocation and reducing wait times across various medical procedures.
 
 # Results {#sec-results}
-
-## Model Validation
 
 ```{r}
 #| echo: false
@@ -272,31 +232,98 @@ modelsummary::modelsummary(
 )
 ```
 
-@tbl-modelresults presents the linear regression model which reveals significant relationships between healthcare system factors and the percentage increase in wait times as all the variables included in the model have p-values less than 0.05. The number of hospital beds per 1,000 inhabitants has a strong negative effect (\Beta=−75.36), indicating that as bed availability decreases, wait times increase. Physician availability per 1,000 shows a positive but smaller effect (\Beta=29.99), suggesting that higher physician counts may correlate with increased demand or delays. Attendance rates also have a significant positive effect (\Beta=1.45), highlighting the strain of growing patient loads on healthcare systems. The model's $R^2$ of 1 suggests it explains nearly all variability in the data, though this may reflect overfitting given the small sample size. Overall, the results emphasize the critical role of resource availability in managing wait times.
+The linear regression model, presented in @tbl-modelresults, explores the relationships between healthcare system factors and the percentage change in wait times, though none of the variables demonstrate statistically significant effects, as indicated by p-values greater than 0.05. The number of hospital beds per 1,000 inhabitants shows a small positive effect (\beta=4.71), suggesting a minimal increase in wait times with higher bed availability, though this effect lacks statistical significance. Physician availability per 1,000 (\beta=31.83) indicates a larger positive association, yet it is also not statistically significant. Attendance rates (\beta =0.40) exhibit the smallest positive effect, suggesting a weak association with wait times. The model achieves an $R^2$ value of 0.599, indicating that approximately 60% of the variability in wait times is explained by the model, though the adjusted $R^2$ value of 0.299 reflects limited predictive power. With a sample size of n=8, the findings should be interpreted cautiously, as the lack of significance and low adjusted $R^2$ highlight potential limitations in the model's robustness and generalizability.
+
+```{r}
+#| echo: false
+#| output: asis
+#| eval: true
+#| label: fig-modelresults1
+#| tbl-cap: "Projections of Linear Model onto Each Predictor: Linear model explaining percentage increase in wait times based on healthcare system predictors."
+
+# Load the saved model
+model <- readRDS("../models/wait_times_model.rds")
+
+# Load the dataset used for the model
+data <- read_parquet("../data/02-analysis_data/final_healthcare_data.parquet")
+
+# Function to create a projection plot for a specific predictor
+create_projection_plot <- function(predictor_name, data, model) {
+  # Create a grid of values for the predictor of interest
+  grid <- seq(min(data[[predictor_name]], na.rm = TRUE), 
+              max(data[[predictor_name]], na.rm = TRUE), length.out = 100)
+  
+  # Create a new data frame for prediction
+  pred_data <- data.frame(grid)
+  colnames(pred_data) <- predictor_name
+  
+  # Fix all other predictors at their mean values
+  other_predictors <- setdiff(names(model$coefficients)[-1], predictor_name)
+  for (var in other_predictors) {
+    pred_data[[var]] <- mean(data[[var]], na.rm = TRUE)
+  }
+  
+  # Predict using the model
+  pred_data$Predicted <- predict(model, newdata = pred_data)
+  
+  # Create the plot
+  ggplot(data, aes_string(x = predictor_name, y = "Total")) +
+    geom_point(color = "blue", size = 2, alpha = 0.7) +
+    geom_line(data = pred_data, aes_string(x = predictor_name, y = "Predicted"), 
+              color = "red", size = 1) +
+    labs(
+      x = predictor_name,
+      y = "Wait Times (%)"
+    ) +
+    theme_minimal() +
+    theme(aspect.ratio = 0.8)
+}
+
+# Generate individual plots
+p1 <- create_projection_plot("attendance", data, model)
+p2 <- create_projection_plot("physicians_per_1000", data, model)
+p3 <- create_projection_plot("beds_per_1000", data, model)
+
+# Combine the plots into one figure
+combined_plot <- (p1 | p2 | p3) +
+  plot_annotation(
+    title = "Projections of Linear Model onto \nEach Predictor vs Percentage Change in Total Wait Times Compared to 2015",
+    caption = "**Red lines indicate the model's predictions, and blue points represent the actual data."
+  )
+
+
+# Display the combined plot
+print(combined_plot)
+
+```
+The projection plots in @tbl-modelresults illustrate the linear model's predictions for the percentage change in wait times (Pct_Wait_Avg) compared to three key predictors: attendance, physicians_per_1000, and beds_per_1000. The red lines depict the predicted relationships, while the blue points represent the observed data values. The attendance predictor shows a clear positive relationship with wait times, as indicated by the upward-sloping red line, and most data points align reasonably well with the model's trend. Physicians_per_1000 also demonstrates a positive trend, but the variability in the observed data points around the red line suggests a weaker fit compared to attendance. In contrast, beds_per_1000 shows minimal association with wait times, with the red line nearly flat and the data points scattered without a clear trend. These plots suggest that attendance is the most influential predictor of wait times among the three variables, while beds_per_1000 has the least impact.
+
+@fig-modeldetails presents the residual plots. The residual plots indicate that the linear model generally fits the data well, with residuals scattered randomly around zero for all predictors, suggesting no major violations of linearity or independence assumptions. However, in each residual plot there is a violation of constant variance where there are noticeable outliers and potential influential points, particularly in the plots for attendance and physicians per 1,000, which may affect the model's robustness. The fitted vs. actual values plot shows a good overall alignment with most points near the predicted line, but two significant deviations highlight discrepancies that could stem from these outliers. Given the small sample size, these findings should be interpreted with caution. 
+
 
 # Discussion {#sec-discussion}
 
 ## Overview
-This study investigates the relationships between healthcare infrastructure, workforce availability, and patient attendance rates with average wait times for key medical procedures in the United Kingdom from 2015 to 2019. Our analysis employs linear modeling to find that the availability of hospital beds per 1,000 inhabitants plays a crucial role in mitigating delays, with reduced bed capacity significantly increasing wait times. While higher physician density was hypothesized to reduce delays, our findings suggest a complex relationship where increased physician numbers can exacerbate delays due to system inefficiencies or heightened demand. Additionally, rising attendance rates place further strain on healthcare resources, leading to longer wait times. These findings emphasize the multifaceted nature of healthcare delays and underscore the need for targeted policy interventions to address both resource allocation and demand management.
+This study investigates the relationships between healthcare infrastructure, workforce availability, and patient attendance rates with average wait times for key medical procedures in the United Kingdom from 2015 to 2022. Our analysis employs a linear regression model but finds no statistically significant relationships between the predictors and wait times. While hospital beds per 1,000 inhabitants showed a weak positive association with wait times, the relationship was not significant, suggesting that bed capacity alone may not directly mitigate delays. Similarly, physician density and attendance rates demonstrated positive but insignificant associations with wait times, reflecting the complex interplay of factors influencing healthcare delays. These findings indicate that systemic inefficiencies, resource allocation challenges, and unmeasured variables may play a more significant role than initially hypothesized. The limited explanatory power of the model and the presence of anomalies in the data post-2019 highlight the need for more detailed data and refined analyses to uncover the true drivers of healthcare delays.
 
 ### Relationship between Wait Times and Beds per 1,000
 
-The results demonstrate a significant negative relationship between the number of hospital beds per 1,000 inhabitants and wait times, emphasizing the critical role of inpatient capacity in managing healthcare demands. As bed availability decreases, hospitals face greater difficulty accommodating patient volumes, leading to longer delays in elective and urgent procedures. This finding aligns with existing healthcare literature, which consistently highlights the importance of adequate infrastructure to ensure timely care delivery. The steep coefficient suggests that even small reductions in bed availability can have outsized effects, creating ripple effects throughout the healthcare system. For example, limited bed availability can delay the discharge of patients in acute care settings, reducing the ability to admit new patients. This underscores the need for careful resource management and forward-looking infrastructure planning, especially in the context of aging populations and rising healthcare demands. Long-term solutions could include increasing investment in hospital infrastructure, optimizing the use of existing beds, and integrating innovative models of care, such as home-based hospitalization, to reduce the strain on inpatient services.
+The weak positive association between hospital beds per 1,000 inhabitants and wait times was unexpected and not statistically significant. While prior research emphasizes the importance of bed availability in managing healthcare demands, this study suggests that increasing bed numbers alone may not guarantee reduced delays. The minimal effect size indicates that factors such as bed utilization efficiency, patient flow management, and the quality of care delivery could overshadow the raw number of beds available. For instance, hospitals with higher bed capacity but poor discharge planning or limited staffing may still experience significant delays. These findings underscore the importance of complementing infrastructure investments with systemic reforms, such as optimizing bed turnover rates, enhancing care coordination, and adopting alternative care models like outpatient procedures or home-based care.
 
 ### Relationship between Wait Times and Physicians per 1,000
 
-The observed positive relationship between physician availability and wait times appears counterintuitive but is explainable within the broader healthcare context. Regions with higher physician densities may experience increased diagnostic and referral rates, as greater access to physicians can result in more patients entering the healthcare system. This could lead to heightened demand for specialized procedures, thereby increasing average wait times. Additionally, inefficiencies in resource allocation, such as misaligned staffing or insufficient operating room availability, may prevent the full utilization of increased physician capacity to reduce delays. The results suggest that increasing physician numbers alone is insufficient to address wait times without concurrent improvements in systemic efficiency. Policymakers should focus on streamlining workflows, enhancing interdisciplinary collaboration, and ensuring that physician availability is complemented by adequate infrastructure and support staff. These measures can help prevent bottlenecks and maximize the impact of physician density on reducing delays.
+The positive but statistically insignificant relationship between physician density and wait times challenges the expectation that greater workforce availability reduces delays. This result may reflect systemic inefficiencies or increased demand driven by greater access to healthcare services. For example, higher physician availability can lead to more diagnostic and treatment referrals, overwhelming other parts of the healthcare system, such as specialized care or operating rooms. Additionally, unmeasured factors like disparities in physician specialization, workflow inefficiencies, or misalignment between physician density and patient needs could further obscure the relationship. These findings highlight that increasing physician numbers alone is insufficient to reduce wait times without addressing systemic bottlenecks. Interventions such as improving care pathways, enhancing interdisciplinary collaboration, and aligning physician availability with infrastructure and support staff could better leverage workforce capacity to reduce delays.
 
 ### Relationship between Wait Times and Type 1 Major Attendance
 
-The positive relationship between Type 1 major attendance rates and wait times underscores the systemic strain caused by rising patient loads. As attendance rates increase, hospitals face escalating pressure to prioritize emergency cases, which can divert resources from elective and non-urgent procedures. This phenomenon is particularly concerning in systems like the NHS, where universal healthcare ensures that emergency care is always prioritized. Increased attendance may be driven by a range of factors, including population growth, limited access to primary care, and changing healthcare-seeking behaviors. Without interventions to address these root causes, hospitals are likely to continue struggling with resource allocation, leading to prolonged wait times across the board. Potential strategies to mitigate this strain include expanding primary care access to reduce unnecessary emergency department visits, implementing community-based triaging systems, and improving public health education to guide appropriate healthcare utilization. Addressing attendance pressures holistically could help alleviate the burden on emergency departments and reduce delays for elective procedures.
+The weak positive association between attendance rates and wait times, though not significant, aligns with broader concerns about rising patient loads straining healthcare systems. As attendance increases, hospitals may prioritize emergency cases, diverting resources from elective and non-urgent procedures, potentially exacerbating delays. Factors such as limited access to primary care, changes in population demographics, and healthcare-seeking behaviors likely drive the observed trends. Although the relationship was not statistically significant, addressing the root causes of rising attendance remains critical to reducing systemic strain. Potential strategies include expanding primary care access, implementing community triaging systems, and improving public health education to promote appropriate healthcare utilization. These measures could help balance patient loads and reduce delays for non-emergency procedures.
 
 ## Limitations 
-One major limitation of this analysis is the small sample size, which includes only five observations spanning 2015 to 2019. This limits the generalizability of the findings and raises concerns about potential overfitting in the regression model. The limited time frame also fails to capture longer-term trends or cyclical variations, such as seasonal fluctuations in demand for specific procedures. Furthermore, the dataset lacks information on critical confounding variables, such as regional healthcare policies, socioeconomic disparities, or detailed patient demographics, which could significantly influence wait times. For instance, regions with different funding allocations or staffing strategies may exhibit divergent wait time trends for which this study cannot account.
+The primary limitation of this study is the small sample size, which includes only eight observations spanning 2015 to 2022. This limits the generalizability of findings and weakens the statistical power needed to detect significant relationships. Additionally, the dataset is influenced by the effects of COVID-19, with wait times deviating significantly from the pre-pandemic trend. As illustrated in @fig-wait, wait times followed a consistent linear increase from 2015 to 2019, but 2020 deviated sharply below trend, while 2021 exhibited a sharp increase above trend. These anomalies suggest inconsistent variance in the data and indicate that a linear model may not be appropriate for post-2019 data. Moreover, the dataset lacks information on key confounding variables such as regional healthcare policies, socioeconomic disparities, or detailed patient demographics, which could significantly influence wait times. Unmeasured systemic inefficiencies, such as staffing misalignment, operating room availability, or referral practices, may also account for the insignificant results. Furthermore, the linear model does not account for potential interaction effects or non-linear relationships between predictors, which could offer deeper insights into the dynamics of healthcare delays.
 
 
 ## Future Work
-To address the limitations of this study, future research should prioritize expanding the dataset to include more years and a broader range of healthcare metrics. Incorporating variables such as regional funding levels and technological investments could provide a more comprehensive understanding of wait time determinants. Additionally, future studies could explore non-linear relationships or interaction effects, such as how the interplay between physician density and hospital bed availability influences delays. Applying machine learning approaches to identify latent patterns or leveraging simulation models to predict the impact of policy interventions could further enhance the analytical depth of this research. By addressing these avenues, future work can better inform targeted policies to optimize resource allocation, reduce wait times, and improve healthcare delivery.
+To address the limitations of this study, future research should prioritize collecting monthly data for the years 2015 to 2019 to explore more granular trends before the anomalies introduced by COVID-19. Analyzing these pre-pandemic patterns could provide a clearer understanding of the role that metrics such as beds per 1,000, physician density, and attendance rates played during a relatively stable period. Additionally, expanding the dataset to include broader healthcare metrics, such as regional funding levels, technological investments, and patient demographics, could yield a more comprehensive analysis. Future studies should also explore non-linear models or interaction effects to capture the intricate relationships between predictors. Simulation models and scenario analyses could be used to test policy interventions, such as optimizing resource allocation or improving workflow efficiency, to identify actionable strategies for reducing wait times and improving healthcare delivery.
 
 \newpage
 
@@ -304,10 +331,265 @@ To address the limitations of this study, future research should prioritize expa
 
 # Appendix {-}
 
+## Full Analysis Dataset
 
-# Additional data details
+```{r}
+#| echo: false
+#| warning: false
+#| error: false
+#| label: tbl-data-appendix
+#| tbl-cap: "A summary table of the cleaned healthcare data displayed in parts"
+# Import the cleaned healthcare dataset
+cleaned_data <- read_parquet("../data/02-analysis_data/final_healthcare_data.parquet")
 
-# Model details {#sec-model-details}
+# Split the table into smaller parts
+part1 <- cleaned_data[, c(1:6)]
+part2 <- cleaned_data[, c(6:12)]
+part3 <- cleaned_data[, c(12:18)]
+part4 <- cleaned_data[, c(18:ncol(cleaned_data))]
+
+# Display the first part of the table
+kable(head(part1), 
+      caption = "Part 1: Hospital statistics")
+kable(head(part2), 
+      caption = "Part 2: Hospital statistics")
+kable(head(part3), 
+      caption = "Part 3: Hospital statistics")
+kable(head(part4), 
+      caption = "Part 4: Hospital statistics")
+```
+
+## Data Cleaning {#sec-cleaning}
+The data cleaning process undertaken in this project involved several key steps to ensure the dataset was accurate, standardized, and ready for analysis. First, raw data on healthcare waiting times, physicians, hospital beds, and emergency admissions from various sources, such as the OECD and NHS, were loaded. For the waiting times data, all Excel files were processed by standardizing column names, extracting relevant fields (treatment function and average waiting time), and appending metadata such as the year and month derived from file names. Treatment functions were harmonized across years, with those from April 2021 onward mapped to their pre-2021 equivalents using a predefined renaming scheme. Data with irrelevant or missing treatment functions (e.g., "Other") were excluded.
+
+Yearly averages for each treatment function were calculated by grouping the data by year and function and computing the mean waiting time. The data was then pivoted to make years the rows and treatment functions the columns, providing a wide-format structure suitable for further analysis. Special corrections were applied, such as manually imputing specific values for ENT in 2019 and 2020.
+
+All datasets were merged on the year variable to produce a consolidated dataset. Percent changes in waiting times from 2015 levels were computed for each treatment function to highlight trends over time. Lastly, columns with multiple-word treatment names were shortened to their first word, with duplicates (e.g., "General Surgery" and "General Medicine") resolved by appending unique suffixes. 
+
+### Full Outcome Variable Plots
+```{r}
+#| echo: false
+#| warning: false
+#| error: false
+#| label: fig-data-group1
+#| tbl-cap: "Percentage Increase in Wait Times (Group 1)"
+#| fig-height: 8
+#| fig-width: 12
+
+# Reshape the data to long format for plotting
+long_wait_pct_data <- cleaned_data |>
+  pivot_longer(
+    cols = -Year, # Include all columns except 'Year'
+    names_to = "Treatment",
+    values_to = "Pct_Change"
+  ) |>
+  filter(!Treatment %in% c("attendance", "physicians_per_1000", "beds_per_1000", "General_S"))
+
+# Split treatments into three groups and ensure "Total" is included in all
+treatments <- unique(long_wait_pct_data$Treatment)
+group_size <- ceiling((length(treatments) - 1) / 3)  # Exclude "Total" when dividing groups
+group1 <- c("Total", treatments[1:group_size])
+group2 <- c("Total", treatments[(group_size + 1):(2 * group_size)])
+group3 <- c("Total", treatments[(2 * group_size + 1):length(treatments)])
+
+# Define colors for treatments, ensuring "Total" is black
+generate_colors <- function(group) {
+  setNames(
+    c("black", rainbow(length(group) - 1)),
+    group
+  )
+}
+
+# Plot for the first group
+colors_group1 <- generate_colors(group1)
+
+plot1 <- long_wait_pct_data %>%
+  filter(Treatment %in% group1) %>%
+  ggplot(aes(x = Year, y = Pct_Change, color = Treatment, group = Treatment)) +
+  geom_line(size = 1) +
+  geom_point(size = 2) +
+  scale_color_manual(
+    values = colors_group1,
+    guide = guide_legend(title = "Treatment")
+  ) +
+  labs(
+    title = "Percentage Increase in Wait Times (Group 1)",
+    x = "Year",
+    y = "Percentage Increase (%)"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "bottom", text = element_text(size = 14))
+
+print(plot1)
+
+```
+```{r}
+#| echo: false
+#| warning: false
+#| error: false
+#| label: fig-data-group2
+#| tbl-cap: "Percentage Increase in Wait Times (Group 2)"
+#| fig-height: 8
+#| fig-width: 12
+
+# Plot for the first group
+colors_group2 <- generate_colors(group1)
+
+plot1 <- long_wait_pct_data %>%
+  filter(Treatment %in% group2) %>%
+  ggplot(aes(x = Year, y = Pct_Change, color = Treatment, group = Treatment)) +
+  geom_line(size = 1) +
+  geom_point(size = 2) +
+  scale_color_manual(
+    values = colors_group1,
+    guide = guide_legend(title = "Treatment")
+  ) +
+  labs(
+    title = "Percentage Increase in Wait Times (Group 2)",
+    x = "Year",
+    y = "Percentage Increase (%)"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "bottom", text = element_text(size = 14))
+
+print(plot2)
+
+```
+```{r}
+#| echo: false
+#| warning: false
+#| error: false
+#| label: fig-data-group2
+#| tbl-cap: "Percentage Increase in Wait Times (Group 3)"
+#| fig-height: 8
+#| fig-width: 12
+
+# Plot for the second group
+plot3 <- long_wait_pct_data %>%
+  filter(Treatment %in% group3) %>%
+  ggplot(aes(x = Year, y = Pct_Change, color = Treatment, group = Treatment)) +
+  geom_line(size = 1) +
+  geom_point(size = 2) +
+  labs(
+    title = "Percentage Increase in Wait Times (Group 3)",
+    x = "Year",
+    y = "Percentage Increase (%)",
+    color = "Treatment"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "bottom", text = element_text(size = 14))
+
+print(plot3)
+```
+## Model Details {#sec-model-details}
+### Original Model Residuals
+```{r}
+#| echo: false
+#| output: asis
+#| eval: true
+#| label: fig-modeldetails
+#| tbl-cap: "Residual plots of each predictor."
+#| # Load necessary libraries
+library(ggplot2)
+
+# Extract residuals and fitted values from the model
+data$residuals <- residuals(model)
+data$fitted <- fitted.values(model)
+
+
+# Plot b: Residuals vs Predictor 1 (attendance)
+plot_b <- ggplot(data, aes(x = attendance, y = residuals)) +
+  geom_point(color = "blue") +
+  geom_hline(yintercept = 0, linetype = "dotted", color = "grey") +
+  theme_classic() +
+  labs(
+    title = "Residuals vs Attendance",
+    y = "Residuals",
+    x = "Attendance"
+  )
+
+# Plot c: Residuals vs Predictor 2 (physicians_per_1000)
+plot_c <- ggplot(data, aes(x = physicians_per_1000, y = residuals)) +
+  geom_point(color = "blue") +
+  geom_hline(yintercept = 0, linetype = "dotted", color = "grey") +
+  theme_classic() +
+  labs(
+    title = "Residuals vs Physicians per 1,000",
+    y = "Residuals",
+    x = "Physicians per 1,000"
+  )
+
+# Plot d: Fitted values vs Actual values (Pct_Wait_Avg)
+plot_e <- ggplot(data, aes(x = Total, y = fitted)) +
+  geom_point(color = "blue") +
+  geom_abline(intercept = 0, slope = 1, linetype = "dashed", color = "red") +
+  theme_classic() +
+  labs(
+    title = "Fitted vs Actual Values",
+    y = "Fitted Values",
+    x = "Actual Values"
+  )
+
+# Plot e: Residuals vs Predictor 3 (beds_per_1000)
+plot_d <- ggplot(data, aes(x = beds_per_1000, y = residuals)) +
+  geom_point(color = "blue") +
+  geom_hline(yintercept = 0, linetype = "dotted", color = "grey") +
+  theme_classic() +
+  labs(
+    title = "Residuals vs Beds per 1,000",
+    y = "Residuals",
+    x = "Beds per 1,000"
+  )
+
+# Combine all plots into a grid
+combined_plot <- (plot_b | plot_c) / (plot_d | plot_e ) +
+  plot_annotation(title = "Diagnostic Plots for Linear Model")
+
+# Print the combined plot
+print(combined_plot)
+```
+### Adapted Model 
+```{r}
+#| echo: false
+#| output: asis
+#| eval: true
+#| label: tbl-modeladj
+#| tbl-cap: "Linear model explaining percentage increase in wait times based on healthcare system predictors"
+
+#### Workspace setup ####
+library(tidyverse)
+
+#### Read data ####
+# Load the cleaned data
+analysis_data <- read_csv("../data/02-analysis_data/final_healthcare_data.csv")
+
+#### Filter data ####
+# Exclude data from 2020 to 2022
+filtered_data <- analysis_data %>% 
+  filter(Year < 2020)
+
+#### Fit the linear model ####
+# Model: Percentage change in wait times as a function of healthcare predictors
+wait_times_model_adj <- lm(
+  Total ~ beds_per_1000 + physicians_per_1000 + attendance,
+  data = filtered_data
+)
+
+#### Save the model ####
+# Save the fitted model for reuse
+saveRDS(wait_times_model_adj, file = "../models/wait_times_model_pre_2020.rds")
+
+# Load the saved model
+modela <- readRDS("../models/wait_times_model_pre_2020.rds")
+
+# Display the model summary in a table
+modelsummary::modelsummary(
+  list("Frequentist Linear Model" = modela),
+  statistic = c("p.value")
+)
+
+```
+
 
 
 
