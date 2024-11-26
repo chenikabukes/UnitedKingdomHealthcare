@@ -1,8 +1,8 @@
-# Starter folder
+# United Kingdom Hospital Wait Times Analysis
 
 ## Overview
 
-This repo provides students with a foundation for their own projects associated with *Telling Stories with Data*. You do not need every aspect for every paper and you should delete aspects that you do not need.
+This repository provides the foundational structure and resources for the analysis of hospital wait times in the United Kingdom. The project investigates how healthcare infrastructure, workforce availability, and patient attendance rates influence wait times for seven key medical procedures. It includes scripts, data, and documentation to support the analysis and facilitate reproducibility.
 
 
 ## File Structure
@@ -18,13 +18,5 @@ The repo is structured as:
 
 
 ## Statement on LLM usage
-
-Aspects of the code were written with the help of the auto-complete tool, Codriver. The abstract and introduction were written with the help of ChatHorse and the entire chat history is available in inputs/llms/usage.txt.
-
-## Some checks
-
-- [ ] Change the rproj file name so that it's not starter_folder.Rproj
-- [ ] Change the README title so that it's not Starter folder
-- [ ] Remove files that you're not using
-- [ ] Update comments in R scripts
-- [ ] Remove this checklist
+The code to clean the data, simulate the data, and produce figures were drafted with the assistance of ChatGPT.
+The entire interaction history with LLMs is documented and available in other/llms/usage.txt.
