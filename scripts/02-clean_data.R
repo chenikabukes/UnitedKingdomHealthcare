@@ -121,15 +121,6 @@ yearly_averages <- all_data %>%
 wide_yearly_averages <- yearly_averages %>%
   pivot_wider(names_from = treatment_function, values_from = Average_Waiting_Time)
 
-wide_yearly_averages <- wide_yearly_averages %>%
-  mutate(
-    ENT = case_when(
-      Year == 2019 ~ 14.9502,  # Set the value for 2019
-      Year == 2020 ~ 15.216,   # Set the value for 2020
-      TRUE ~ ENT              # Retain existing values for other years
-    )
-  )
-
 # Calculate percent change from 2015 levels with robust handling of NA values
 wide_yearly_averages_percent_change <- wide_yearly_averages %>%
   mutate(across(
@@ -237,9 +228,11 @@ final_data <- physician_data |>
     Trauma,
     Urology,
     Total
+  ) 
   )
 
 
 #### Save final dataset ####
 write_parquet(final_data, "./data/02-analysis_data/final_healthcare_data.parquet")
 write.csv(final_data, "./data/02-analysis_data/final_healthcare_data.csv")
+
