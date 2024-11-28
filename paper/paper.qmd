@@ -42,7 +42,7 @@ Understanding the drivers of wait times is vital for improving healthcare access
 
 ## Overview
 
-In this paper, the analysis will be carried out using the statistical programming language `R` [@citeR] and use the `tidyverse` [@citeTidy], `devtools` (Wickham, Hester, and Chang 2020) and `dplyr` (Wickham et al. 2021) packages. All figures in the report are generated using `ggplot2` [@citeGG] with `patchwork` [@patchwork], and `gridExtra` [@gridExtra].
+In this paper, the analysis will be carried out using the statistical programming language `R` [@citeR] and use the `tidyverse` [@tidyverse], `devtools` (Wickham, Hester, and Chang 2020) and `dplyr` (Wickham et al. 2021) packages. All figures in the report are generated using `ggplot2` [@citeGG] with `patchwork` [@patchwork], and `gridExtra` [@gridExtra].
 
 This report integrates data from two key sources: the NHS and the Organisation for Economic Co-operation and Development (OECD). These datasets provide critical information to analyze trends in healthcare demand and resources in the United Kingdom.
 
@@ -63,27 +63,36 @@ Additional datasets are sourced from the OECD Health Statistics 2024 database [@
 
 **Overall**: All datasets rely on administrative data validated by their respective agencies, minimizing reporting errors. While historical methodological changes (e.g., hospital reporting standards) necessitated adjustments, these do not affect the study's time period from 2015 to 2022. Similar datasets from the World Health Organization (WHO) and Eurostat health statistics could offer supplementary insights but were not utilized due to a lack of UK-specific detail. 
 
+\newpage 
+
 ## Methodology {#sec-methodology}
-The data cleaning method involved many steps and is described in @sec-cleaning. All data cleaning was done using `arrow` [@arrow], `tidyverse` [@tidyverse], `readxl` [@readxl], and `stringr` [@stringr]. Below is a snapshot of the first five rows of the key data columns which will be used for this paper. @tbl-data-appendix provides the entire cleaned dataset in table format. 
+The data cleaning method involved many steps and is described in @sec-cleaning. All data cleaning was done using `arrow` [@arrow], `tidyverse` [@tidyverse], `readxl` [@readxl], and `stringr` [@stringr]. Below is a snapshot of the first five rows of the key data columns which will be used for this paper. @tbl-dataappendix provides the data including individual treatment area percentage change in waiting times from 2015 in table format. 
 
 ```{r}
 #| echo: false
 #| warning: false
 #| error: false
 #| label: tbl-data
-#| tbl-cap: "A summary table of the cleaned healthcare data displayed in parts"
+#| tbl-cap: "NHS Hospital Statistics from the cleaned healthcare data for 2015-2022"
 # Import the cleaned healthcare dataset
 cleaned_data <- read_parquet("../data/02-analysis_data/final_healthcare_data.parquet")
 
+format_numeric <- function(df) {
+  df %>%
+    mutate(across(where(is.numeric), ~ round(., 2))) # Round numeric columns to 2 decimal places
+}
+
+
 # Split the table into smaller parts
-part1 <- cleaned_data[, c(1:4, which(colnames(cleaned_data) == "Total"))]
+part1 <- cleaned_data[, c(1:4, which(colnames(cleaned_data) == "Total"))] %>% format_numeric
 
 # Display the first part of the table
-kable(part1, 
-      caption = "NHS Hospital Statistics for 2015-2022")
+kable(part1)
 ```
 
-@tbl-data presents United Kingdom hospital and healthcare statistics from the cleaned dataset, consisting of the 3 predictor variables and estimand and 8 observations spanning the years 2015 to 2022. The predictors include year, beds per 1,000 inhabitants, physicians per 1,000 inhabitants, and Type 1 major care attendance rates. The outcome variable `Total` captures wait times (in percent change from 2015 levels) for key treatment areas such as cardiology, ENT, gynaecology, plastic surgery and neurosurgery. All metrics are standardized based on population or healthcare utilization data for each year. The full cleaned dataset is provided in @ tbl-data-appendix and the full list of treatments from which `Total` is computed is provided in @tbl-treatments. 
+@tbl-data presents United Kingdom hospital and healthcare statistics from the cleaned dataset, consisting of the 3 predictor variables and estimand and 8 observations spanning the years 2015 to 2022. The predictors include year, beds per 1,000 inhabitants, physicians per 1,000 inhabitants, and Type 1 major care attendance rates. The outcome variable `Total` captures wait times (in percent change from 2015 levels) for key treatment areas such as cardiology, ENT, gynaecology, plastic surgery and neurosurgery. All metrics are standardized based on population or healthcare utilization data for each year. The dataset including individual treatment waiting times percetentage change from 2015 is provided in @tbl-dataappendix and the full list of treatments from which `Total` is computed is provided in @tbl-treatments.
+
+\newpage
 
 ## Outcome variables
 
@@ -96,8 +105,8 @@ kable(part1,
 
 
 # Plot for the "Total" column
-ggplot(long_wait_pct_data %>% filter(Treatment == "Total"), 
-       aes(x = Year, y = Pct_Change, group = Treatment)) +
+ggplot(cleaned_data , 
+       aes(x = Year, y = Total)) +
   geom_line(size = 1, color = "black") +
   geom_point(size = 2, color = "black") +
   labs(
@@ -109,7 +118,7 @@ ggplot(long_wait_pct_data %>% filter(Treatment == "Total"),
   theme_minimal() +
   theme(
     legend.position = "none",
-    text = element_text(size = 14)
+    text = element_text(size = 11)
   )
 
 
@@ -165,7 +174,7 @@ ggplot(cleaned_data, aes(x = Year, y = physicians_per_1000)) +
 
 # Plotting Type 1 Major Care Attendance
 ggplot(cleaned_data) +
-  geom_line(aes(x = Year, y = attendance, color = "A&E Attendances"), size = 1) +
+  geom_line(aes(x = Year, y = attendance), size = 1) +
   scale_color_manual(values = c("A&E Attendances" = "blue")) +
   labs(
     title = "Type 1 Major Care Attendance in the United Kingdom (2015–2019)",
@@ -174,7 +183,7 @@ ggplot(cleaned_data) +
     color = "Service Type"
   ) +
   theme_minimal() +
-  theme(legend.position = "bottom")
+  theme(legend.position = "bottom", text = element_text(size = 11))
 ```
 @fig-attendance-demand illustrates the percentage change in Type 1 Major Care Attendance (A&E Attendances) in the UK from 2015 to 2022. Between 2015 and 2019, A&E attendances showed a modest, steady increase, reflecting a growing demand for emergency services. However, there was a sharp decline in 2020, likely attributable to the COVID-19 pandemic and related restrictions, which disrupted normal healthcare-seeking behavior. Attendance levels rebounded significantly in 2021, surpassing pre-pandemic levels, and remained stable through 2022. This trend highlights both the resilience of demand for emergency services and the need for strategies to manage surges in attendance effectively, such as enhancing access to primary care and preventive healthcare services.
 
@@ -196,36 +205,32 @@ $$
 Y_{i} = \beta_0 + \beta_1X_{1i} + \beta_2X_{2i} + \beta_3X_{3i} + \epsilon_{i}
 $$
 
-\begin{align} 
-Y_{ij} & = \text{The average percentage change in wait time for the 15 specific medical procedures in year i}. \\
-X_{1i}, X_{2i}, X_{3i} & = \text{The independent variables of physicians per 1000 people, beds per 1000 people, and Type 1 attendance for procedure } j \text{ in year } i. \\
-\beta_0 & = \text{The intercept or constant term, representing the expected wait time when all predictors are zero.} \\
-\beta_1, \beta_2, \beta_3 & = \text{The slope coefficients for the predictors, representing the estimated change in wait time for a one-unit increase in the respective predictor.} \\
-\epsilon_{i} & = \text{The error term, representing the deviation of the actual wait time from the predicted wait time based on the regression equation.}
-\end{align}
+* $Y_{i}$: The average percentage change in wait time for the 15 specific medical procedures in year $i$. 
+* $X_{1i}, X_{2i}, X_{3i}$: The independent variables representing physicians per 1,000 people, beds per 1,000 people, and Type 1 attendance, respectively, for procedure $j$ in year $i$. 
+* $\beta_0$: The constant term, representing the expected wait time when all predictors are zero.
+* $\beta_1, \beta_2, \beta_3$: The slope coefficients for the predictors, representing the estimated change in wait time for a one-unit increase in the respective predictor.
+* $\epsilon_{i}$: The error term, representing the deviation of the actual wait time from the predicted wait time based on the regression equation.
 
-The goal of the linear regression model is to estimate the values of \beta_1, \beta_2, and \beta_3 such that the model fits the data well and to predict the expected value of the average total waiting time for procedures for different values of physician rates, hospital bed rates, and type 1 major care attendance. The statistical significance of 1 can be assessed using a t-test, which tests whether the estimated coeﬀicient is significantly different from zero. If the p-value of the t-test for each coefficient is less than a chosen significance level, we can conclude that there is a significant relationship between the average percentage change in wait time and the healthcare predictors.
+The goal of the linear regression model is to estimate the values of $\beta_1$, $\beta_2$, and $\beta_3$ such that the model fits the data well and to predict the expected value of the average total waiting time for procedures for different values of physician rates, hospital bed rates, and type 1 major care attendance. The statistical significance of 1 can be assessed using a t-test, which tests whether the estimated coeﬀicient is significantly different from zero. If the p-value of the t-test for each coefficient is less than a chosen significance level, we can conclude that there is a significant relationship between the average percentage change in wait time and the healthcare predictors.
 
 ### Model Assumptions {#sec-model-assumptions}
 The linear regression model assumes:
 
 * Linearity: The relationship between the predictors and response variable is linear.
 * Independence: Observations are independent of each other.
-* Homoscedasticity: The variance of the error term (\epsilon) is constant across all levels of the predictors.
+* Homoscedasticity: The variance of the error term ($\epsilon$) is constant across all levels of the predictors.
 * Normality: The residuals of the model are approximately normally distributed.
 
 ### Model justification
 
-This model framework allows us to evaluate the impact of key healthcare system factors on wait times. The selected predictors—beds_per_1000, physicians_per_1000, and attendance—are directly linked to resource availability and demand, making them relevant for understanding delays in medical care. The results from this model can provide actionable insights to inform policies aimed at optimizing resource allocation, improving healthcare infrastructure, and managing patient flow to reduce wait times.
-
-We expect to confirm that reduced healthcare resources (fewer hospital beds, lower physician availability), and increased demand (more tpe 1 attendances) are associated with longer wait times, while better resource availability can mitigate delays. This analysis will help identify key leverage points for optimizing resource allocation and reducing wait times across various medical procedures.
+This model framework allows us to evaluate the impact of key healthcare system factors on wait times. The selected predictors—beds_per_1000, physicians_per_1000, and attendance—are directly linked to resource availability and demand, making them relevant for understanding delays in medical care. The results from this model can provide actionable insights to inform policies aimed at optimizing resource allocation, improving healthcare infrastructure, and managing patient flow to reduce wait times. This analysis will help identify key leverage points for optimizing resource allocation and reducing wait times across various medical procedures.
 
 ### Hypotheses
 Each predictor variable is expected to contribute uniquely:
 
-* Beds per 1,000 inhabitants (X_1): A lower bed-to-population ratio may increase wait times by limiting inpatient care capacity.
-* Physicians per 1,000 inhabitants (X_2): Greater physician availability is hypothesized to decrease wait times.
-* Attendance Rates (X_3): Increased attendance could indicate growing demand on the healthcare system, potentially leading to longer wait times.
+* Beds per 1,000 inhabitants ($X_1$): A lower bed-to-population ratio may increase wait times by limiting inpatient care capacity.
+* Physicians per 1,000 inhabitants ($X_2$): Greater physician availability is hypothesized to decrease wait times.
+* Attendance Rates ($X_3$): Increased attendance could indicate growing demand on the healthcare system, potentially leading to longer wait times.
 
 
 ### Evaluation and Validation
@@ -233,15 +238,17 @@ Evaluation and Validation
 To ensure the robustness of our findings, the model was validated through the following steps:
 
 1. Residual Diagnostics: We assessed residual plots for patterns suggesting non-linearity or heteroscedasticity. No significant violations of assumptions were detected @sec-residuals.
-2. Significance Testing: We conducted t-tests to assess whether each coefficient (\beta_0, \beta_1, \beta_2, \beta_3) is statistically significant at the 0.05 level @sec-results.
+2. Significance Testing: We conducted t-tests to assess whether each coefficient ($\beta_0$, $\beta_1$, $\beta_2$, $\beta_3$) is statistically significant at the 0.05 level @sec-results.
 3. Goodness of Fit: The R-squared statistic was calculated to measure how well the model explains the variability in wait times @sec-results.
 4. Alternative Models: a variant containing data only from 2015 to 2019 was tested to confirm whether the anomalies present in the Covid-19 pandemic years of 2020-2021 was a probable cause for poor fit @sec-adapted. In both models, the p-values of the coefficients were insignificant so the model containing the larger data set (original model from 2015-2022) was used for final analysis. 
+
+\newpage
 
 # Results {#sec-results}
 
 ```{r}
 #| echo: false
-#| output: asis
+#| warning: false
 #| eval: true
 #| label: tbl-modelresults
 #| tbl-cap: "Linear model explaining percentage increase in wait times based on healthcare system predictors"
@@ -256,11 +263,14 @@ modelsummary::modelsummary(
 )
 ```
 
-The linear regression model, presented in @tbl-modelresults, explores the relationships between healthcare system factors and the percentage change in wait times, though none of the variables demonstrate statistically significant effects, as indicated by p-values greater than 0.05. The number of hospital beds per 1,000 inhabitants shows a small positive effect (\beta=4.71), suggesting a minimal increase in wait times with higher bed availability, though this effect lacks statistical significance. Physician availability per 1,000 (\beta=31.83) indicates a larger positive association, yet it is also not statistically significant. Attendance rates (\beta =0.40) exhibit the smallest positive effect, suggesting a weak association with wait times. The model achieves an $R^2$ value of 0.599, indicating that approximately 60% of the variability in wait times is explained by the model, though the adjusted $R^2$ value of 0.299 reflects limited predictive power. With a sample size of n=8, the findings should be interpreted cautiously, as the lack of significance and low adjusted $R^2$ highlight potential limitations in the model's robustness and generalizability.
+The linear regression model, presented in @tbl-modelresults, explores the relationships between healthcare system factors and the percentage change in wait times, though none of the variables demonstrate statistically significant effects, as indicated by p-values greater than 0.05. The number of hospital beds per 1,000 inhabitants shows a small positive effect ($\beta_1$=4.71), suggesting a minimal increase in wait times with higher bed availability, though this effect lacks statistical significance. Physician availability per 1,000 ($\beta_2$=31.83) indicates a larger positive association, yet it is also not statistically significant. Attendance rates ($\beta_3$ =0.40) exhibit the smallest positive effect, suggesting a weak association with wait times. The model achieves an $R^2$ value of 0.599, indicating that approximately 60% of the variability in wait times is explained by the model, though the adjusted $R^2$ value of 0.299 reflects limited predictive power. With a sample size of n=8, the findings should be interpreted cautiously, as the lack of significance and low adjusted $R^2$ highlight potential limitations in the model's robustness and generalizability.
+
+\newpage
 
 ```{r}
 #| echo: false
-#| output: asis
+#| warning: false
+#| error: false
 #| eval: true
 #| label: fig-modelresults1
 #| tbl-cap: "Projections of Linear Model onto Each Predictor: Linear model explaining percentage increase in wait times based on healthcare system predictors."
@@ -313,14 +323,18 @@ combined_plot <- (p1 | p2 | p3) +
   plot_annotation(
     title = "Projections of Linear Model onto \nEach Predictor vs Percentage Change in Total Wait Times Compared to 2015",
     caption = "**Red lines indicate the model's predictions, and blue points represent the actual data."
+  ) &
+  theme(
+    plot.title = element_text(size = 10)  # Adjust the title font size here
   )
+
 
 
 # Display the combined plot
 print(combined_plot)
 
 ```
-The projection plots in @tbl-modelresults illustrate the linear model's predictions for the percentage change in wait times (`Total`) compared to the three predictors: attendance, physicians_per_1000, and beds_per_1000. The red lines depict the predicted relationships, while the blue points represent the observed data values. The physicians_per_1000 predictor shows a clear positive relationship with wait times, as indicated by the upward-sloping red line, and most data points align reasonably well with the model's trend. Attendance also demonstrates a positive trend, but the variability in the observed data points around the red line suggests a weaker fit compared to attendance. In contrast, beds_per_1000 shows minimal association with wait times, with the red line nearly flat and the data points scattered without a clear trend. For each plot of the predictor vs outcome variable there seems to be at least two data points which deviate significantly from the remaining points. These were hypothesized to be due to the outliers from trend witnessed in @sec-data stemming from the Covid-19 pandemic years. @sec-adapted developed and analysed the significance of an adapted model for years 2015-2019 before the pandemic to avoid such outlier effects in capturing the trend. The overall model significance was much greater and linear assumption violations in the residual plots were non-existent, however individual coefficients were still non-significant and the dataset on which this model was constructed was even smaller with 5 observations.  
+The projection plots in @tbl-modelresults illustrate the linear model's predictions for the percentage change in wait times (`Total`) compared to the three predictors: attendance, physicians_per_1000, and beds_per_1000. The red lines depict the predicted relationships, while the blue points represent the observed data values. The physicians_per_1000 predictor shows a clear positive relationship with wait times, as indicated by the upward-sloping red line, and most data points align reasonably well with the model's trend. Attendance also demonstrates a positive trend, but the variability in the observed data points around the red line suggests a weaker fit compared to attendance. In contrast, beds_per_1000 shows minimal association with wait times, with the red line nearly flat and the data points scattered without a clear trend. For each plot of the predictor vs outcome variable there seems to be at least two data points which deviate significantly from the remaining points. These were hypothesized to be due to the outliers from trend witnessed in @fig-total stemming from the Covid-19 pandemic years. @sec-adapted developed and analysed the significance of an adapted model for years 2015-2019 before the pandemic to avoid such outlier effects in capturing the trend. The overall model significance was much greater and linear assumption violations in the residual plots were non-existent, however individual coefficients were still non-significant and the dataset on which this model was constructed was even smaller with 5 observations.  
 
 # Discussion {#sec-discussion}
 
@@ -339,7 +353,7 @@ The positive but statistically insignificant relationship between physician dens
 The weak positive association between attendance rates and wait times, though not significant, aligns with broader concerns about rising patient loads straining healthcare systems. The relationship is likely weak due to the significant deviation from pre-Covid trend in 2020, with a sudden drop by 25% from 2019 levels. This drop was recovered in 2021, but the impact on the linear model constructed by a limited 8 observation data set cannot be ignored. As attendance increases, hospitals may prioritize emergency cases, diverting resources from elective and non-urgent procedures, potentially exacerbating delays. Factors such as limited access to primary care, changes in population demographics, and healthcare-seeking behaviors likely drive the observed trends. Although the relationship was not statistically significant, addressing the root causes of rising attendance remains critical to reducing systemic strain. Potential strategies include expanding primary care access, implementing community triaging systems, and improving public health education to promote appropriate healthcare utilization. These measures could help balance patient loads and reduce delays for non-emergency procedures.
 
 ## Limitations 
-The primary limitation of this study is the small sample size, which includes only eight observations spanning 2015 to 2022. This limits the generalizability of findings and weakens the statistical power needed to detect significant relationships. Additionally, the dataset is influenced by the effects of COVID-19, with wait times deviating significantly from the pre-pandemic trend. As illustrated in @fig-wait, wait times followed a consistent linear increase from 2015 to 2019, but 2020 deviated sharply below trend, while 2021 exhibited a sharp increase above trend. These anomalies suggest inconsistent variance in the data and indicate that a linear model may not be appropriate for post-2019 data. Moreover, the dataset lacks information on key confounding variables such as regional healthcare policies, socioeconomic disparities, or detailed patient demographics, which could significantly influence wait times. Unmeasured systemic inefficiencies, such as staffing misalignment, operating room availability, or referral practices, may also account for the insignificant results. Furthermore, the linear model does not account for potential interaction effects or non-linear relationships between predictors, which could offer deeper insights into the dynamics of healthcare delays.
+The primary limitation of this study is the small sample size, which includes only eight observations spanning 2015 to 2022. This limits the generalizability of findings and weakens the statistical power needed to detect significant relationships. Additionally, the dataset is influenced by the effects of COVID-19, with wait times deviating significantly from the pre-pandemic trend. As illustrated in @fig-total, wait times followed a consistent linear increase from 2015 to 2019, but 2020 deviated sharply below trend, while 2021 exhibited a sharp increase above trend. These anomalies suggest inconsistent variance in the data and indicate that a linear model may not be appropriate for post-2019 data. Moreover, the dataset lacks information on key confounding variables such as regional healthcare policies, socioeconomic disparities, or detailed patient demographics, which could significantly influence wait times. Unmeasured systemic inefficiencies, such as staffing misalignment, operating room availability, or referral practices, may also account for the insignificant results. Furthermore, the linear model does not account for potential interaction effects or non-linear relationships between predictors, which could offer deeper insights into the dynamics of healthcare delays.
 
 
 ## Future Work
@@ -359,7 +373,7 @@ To address the limitations of this study, future research should prioritize coll
 #| echo: false
 #| warning: false
 #| error: false
-#| label: tbl-data-appendix
+#| label: tbl-treatments
 #| tbl-cap: "A summary table of the treatments"
 
 # Import the cleaned healthcare dataset
@@ -371,164 +385,82 @@ treatment_names <- colnames(cleaned_data)[5:(ncol(cleaned_data) - 1)]
 # Display the treatment names in a table
 library(knitr)
 kable(
-  data.frame("Treatments" = treatment_names),
-  caption = "List of Medical Treatment Areas"
+  data.frame("Treatments" = treatment_names)
 )
 ```
-
-### Full Cleaned Dataset
-```{r}
-#| echo: false
-#| warning: false
-#| error: false
-#| label: tbl-data-appendix
-#| tbl-cap: "A summary table of the cleaned healthcare data displayed in parts"
-
-# Split the table into smaller parts
-part1 <- cleaned_data[, c(1:6)]
-part2 <- cleaned_data[, c(6:12)]
-part3 <- cleaned_data[, c(12:18)]
-part4 <- cleaned_data[, c(18:ncol(cleaned_data))]
-
-# Display the first part of the table
-kable(part1, 
-      caption = "Part 1: Hospital statistics")
-kable(part2, 
-      caption = "Part 2: Hospital statistics")
-kable(part3, 
-      caption = "Part 3: Hospital statistics")
-kable(part4, 
-      caption = "Part 4: Hospital statistics")
-
-```
-
-## Data Cleaning {#sec-cleaning}
+### Data Cleaning {#sec-cleaning}
 The data cleaning process undertaken in this project involved several key steps to ensure the dataset was accurate, standardized, and ready for analysis. First, raw data on healthcare waiting times, physicians, hospital beds, and emergency admissions from various sources, such as the OECD and NHS, were loaded. For the waiting times data, all Excel files were processed by standardizing column names, extracting relevant fields (treatment function and average waiting time), and appending metadata such as the year and month derived from file names. Treatment functions were harmonized across years, with those from April 2021 onward mapped to their pre-2021 equivalents using a predefined renaming scheme. Data with irrelevant or missing treatment functions (e.g., "Other") were excluded.
 
 Yearly averages for each treatment function were calculated by grouping the data by year and function and computing the mean waiting time. The data was then pivoted to make years the rows and treatment functions the columns, providing a wide-format structure suitable for further analysis. Special corrections were applied, such as manually imputing specific values for ENT in 2019 and 2020.
 
 All datasets were merged on the year variable to produce a consolidated dataset. Percent changes in waiting times from 2015 levels were computed for each treatment function to highlight trends over time. Lastly, columns with multiple-word treatment names were shortened to their first word, with duplicates (e.g., "General Surgery" and "General Medicine") resolved by appending unique suffixes. 
 
-### Full Outcome Variable Plots
+### Individual Treatment Wait Times {#sec-cleaneddataset}
 ```{r}
 #| echo: false
 #| warning: false
 #| error: false
-#| label: fig-data-group1
-#| tbl-cap: "Percentage Increase in Wait Times (Group 1)"
-#| fig-height: 8
-#| fig-width: 12
+#| label: tbl-dataappendix
+#| tbl-cap: "A summary table of the cleaned healthcare data displayed in parts"
 
-# Reshape the data to long format for plotting
-long_wait_pct_data <- cleaned_data |>
-  pivot_longer(
-    cols = -Year, # Include all columns except 'Year'
-    names_to = "Treatment",
-    values_to = "Pct_Change"
-  ) |>
-  filter(!Treatment %in% c("attendance", "physicians_per_1000", "beds_per_1000", "General_S"))
-
-# Split treatments into three groups and ensure "Total" is included in all
-treatments <- unique(long_wait_pct_data$Treatment)
-group_size <- ceiling((length(treatments) - 1) / 3)  # Exclude "Total" when dividing groups
-group1 <- c("Total", treatments[1:group_size])
-group2 <- c("Total", treatments[(group_size + 1):(2 * group_size)])
-group3 <- c("Total", treatments[(2 * group_size + 1):length(treatments)])
-
-# Define colors for treatments, ensuring "Total" is black
-generate_colors <- function(group) {
-  setNames(
-    c("black", rainbow(length(group) - 1)),
-    group
-  )
+format_numeric <- function(df) {
+  df %>%
+    mutate(across(where(is.numeric), ~ round(., 2))) # Round numeric columns to 2 decimal places
 }
 
-# Plot for the first group
-colors_group1 <- generate_colors(group1)
+# Split and format the table into smaller parts
+part1 <- cleaned_data[, c(1:6)] %>% format_numeric()
+part2 <- cleaned_data[, c(6:12)] %>% format_numeric()
+part3 <- cleaned_data[, c(12:18)] %>% format_numeric()
+part4 <- cleaned_data[, c(18:ncol(cleaned_data))] %>% format_numeric()
 
-plot1 <- long_wait_pct_data %>%
-  filter(Treatment %in% group1) %>%
-  ggplot(aes(x = Year, y = Pct_Change, color = Treatment, group = Treatment)) +
-  geom_line(size = 1) +
-  geom_point(size = 2) +
-  scale_color_manual(
-    values = colors_group1,
-    guide = guide_legend(title = "Treatment")
-  ) +
-  labs(
-    title = "Percentage Increase in Wait Times (Group 1)",
-    x = "Year",
-    y = "Percentage Increase (%)"
-  ) +
-  theme_minimal() +
-  theme(legend.position = "bottom", text = element_text(size = 14))
-
-print(plot1)
+# Display the first part of the table
+kable(part1)
 
 ```
 ```{r}
 #| echo: false
 #| warning: false
 #| error: false
-#| label: fig-data-group2
-#| tbl-cap: "Percentage Increase in Wait Times (Group 2)"
-#| fig-height: 8
-#| fig-width: 12
+#| label: tbl-dataappendix2
+#| tbl-cap: "Part 2: Hospital statistics"
 
-# Plot for the first group
-colors_group2 <- generate_colors(group1)
 
-plot1 <- long_wait_pct_data %>%
-  filter(Treatment %in% group2) %>%
-  ggplot(aes(x = Year, y = Pct_Change, color = Treatment, group = Treatment)) +
-  geom_line(size = 1) +
-  geom_point(size = 2) +
-  scale_color_manual(
-    values = colors_group1,
-    guide = guide_legend(title = "Treatment")
-  ) +
-  labs(
-    title = "Percentage Increase in Wait Times (Group 2)",
-    x = "Year",
-    y = "Percentage Increase (%)"
-  ) +
-  theme_minimal() +
-  theme(legend.position = "bottom", text = element_text(size = 14))
+kable(part2)
 
-print(plot2)
+
+```
+
+```{r}
+#| echo: false
+#| warning: false
+#| error: false
+#| label: tbl-dataappendix3
+#| tbl-cap: "Part 3: Hospital statistics"
+
+kable(part3)
 
 ```
 ```{r}
 #| echo: false
 #| warning: false
 #| error: false
-#| label: fig-data-group2
-#| tbl-cap: "Percentage Increase in Wait Times (Group 3)"
-#| fig-height: 8
-#| fig-width: 12
+#| label: tbl-dataappendix4
+#| tbl-cap: "Part 4: Hospital statistics"
 
-# Plot for the second group
-plot3 <- long_wait_pct_data %>%
-  filter(Treatment %in% group3) %>%
-  ggplot(aes(x = Year, y = Pct_Change, color = Treatment, group = Treatment)) +
-  geom_line(size = 1) +
-  geom_point(size = 2) +
-  labs(
-    title = "Percentage Increase in Wait Times (Group 3)",
-    x = "Year",
-    y = "Percentage Increase (%)",
-    color = "Treatment"
-  ) +
-  theme_minimal() +
-  theme(legend.position = "bottom", text = element_text(size = 14))
+kable(part4)
 
-print(plot3)
 ```
+
+\newpage 
+
 ## Model Details {#sec-model-details}
+
 ### Original Model Residuals {#sec-residuals}
 ```{r}
 #| echo: false
-#| output: false
+#| warning: false
+#| error: false
 #| eval: true
 #| label: fig-modeldetails
 #| tbl-cap: "Residual plots of each predictor."
@@ -547,7 +479,8 @@ plot_b <- ggplot(data, aes(x = attendance, y = residuals)) +
     title = "Residuals vs Attendance",
     y = "Residuals",
     x = "Attendance"
-  )
+  ) +
+  theme(plot.title = element_text(size = 10))
 
 # Plot c: Residuals vs Predictor 2 (physicians_per_1000)
 plot_c <- ggplot(data, aes(x = physicians_per_1000, y = residuals)) +
@@ -558,7 +491,8 @@ plot_c <- ggplot(data, aes(x = physicians_per_1000, y = residuals)) +
     title = "Residuals vs Physicians per 1,000",
     y = "Residuals",
     x = "Physicians per 1,000"
-  )
+  ) +
+  theme(plot.title = element_text(size = 10))
 
 # Plot d: Fitted values vs Actual values (Pct_Wait_Avg)
 plot_e <- ggplot(data, aes(x = Total, y = fitted)) +
@@ -569,7 +503,8 @@ plot_e <- ggplot(data, aes(x = Total, y = fitted)) +
     title = "Fitted vs Actual Values",
     y = "Fitted Values",
     x = "Actual Values"
-  )
+  ) +
+  theme(plot.title = element_text(size = 10))
 
 # Plot e: Residuals vs Predictor 3 (beds_per_1000)
 plot_d <- ggplot(data, aes(x = beds_per_1000, y = residuals)) +
@@ -580,7 +515,8 @@ plot_d <- ggplot(data, aes(x = beds_per_1000, y = residuals)) +
     title = "Residuals vs Beds per 1,000",
     y = "Residuals",
     x = "Beds per 1,000"
-  )
+  ) +
+  theme(plot.title = element_text(size = 10))
 
 # Combine all plots into a grid
 combined_plot <- (plot_b | plot_c) / (plot_d | plot_e ) +
@@ -590,10 +526,15 @@ combined_plot <- (plot_b | plot_c) / (plot_d | plot_e ) +
 print(combined_plot)
 ```
 @fig-modeldetails presents the residual plots which indicate that the linear model generally fits the data well, with residuals scattered randomly around zero for all predictors, suggesting no major violations of linearity or independence assumptions. However, in each residual plot there is a violation of constant variance where there are noticeable outliers and potential influential points, particularly in the plots for attendance and physicians per 1,000, which may affect the model's robustness. The fitted vs. actual values plot shows a good overall alignment with most points near the predicted line, but two significant deviations highlight discrepancies that could stem from these outliers. Given the small sample size, these findings should be interpreted with caution. 
+
+\newpage 
+
 ### Adapted Model {#sec-adapted}
+
 ```{r}
 #| echo: false
 #| output: asis
+#| warning: false
 #| eval: true
 #| label: tbl-adj
 #| tbl-cap: "Linear model explaining percentage increase in wait times based on healthcare system predictors (2015-2019)"
@@ -628,11 +569,13 @@ modelsummary::modelsummary(
   statistic = c("p.value")
 )
 ```
-The linear regression model, summarized in @tbl-adj, examines the impact of healthcare system factors on wait times from 2015–2019. Hospital beds per 1,000 inhabitants (\beta_1 =−176.99) and physicians per 1,000 (\beta_2 =−78.19) both show negative associations with wait times, suggesting increased resources reduce delays, though neither effect is statistically significant (p >0.05). Attendance rates (\beta_3=−0.66) exhibit a minimal effect. The model explains 97.8% of the variability in wait times ($R^2$=0.978), though the adjusted $R^2$ of 0.911 reflects possible overfitting due to the small sample size (n = 5). While the model fits well, the lack of significant predictors highlights the need for further data to better capture drivers of wait times. The small RMSE of 0.58 indicates the linear trend is never far off from the actual wait times. 
+The linear regression model, summarized in @tbl-adj, examines the impact of healthcare system factors on wait times from 2015–2019. Hospital beds per 1,000 inhabitants ($\beta_1 =−176.99$) and physicians per 1,000 ($\beta_2 =−78.19$) both show negative associations with wait times, suggesting increased resources reduce delays, though neither effect is statistically significant ($p >0.05$). Attendance rates ($\beta_3=−0.66$) exhibit a minimal effect. The model explains 97.8% of the variability in wait times ($R^2$=0.978), though the adjusted $R^2$ of 0.911 reflects possible overfitting due to the small sample size ($n = 5$). While the model fits well, the lack of significant predictors highlights the need for further data to better capture drivers of wait times. The small RMSE of 0.58 indicates the linear trend is never far off from the actual wait times. 
+
+\newpage
 
 ```{r}
 #| echo: false
-#| output: false
+#| warning: false
 #| eval: true
 #| label: fig-residadj
 #| tbl-cap: "Linear model explaining percentage increase in wait times based on healthcare system predictors (2015-2019)"
@@ -654,7 +597,8 @@ plot_b <- ggplot(filtered_data, aes(x = attendance, y = residuals)) +
     title = "Residuals vs Attendance",
     y = "Residuals",
     x = "Attendance"
-  )
+  ) +
+  theme(plot.title = element_text(size = 10))
 
 # Plot c: Residuals vs Predictor 2 (physicians_per_1000)
 plot_c <- ggplot(filtered_data, aes(x = physicians_per_1000, y = residuals)) +
@@ -665,7 +609,8 @@ plot_c <- ggplot(filtered_data, aes(x = physicians_per_1000, y = residuals)) +
     title = "Residuals vs Physicians per 1,000",
     y = "Residuals",
     x = "Physicians per 1,000"
-  )
+  ) +
+  theme(plot.title = element_text(size = 10))
 
 # Plot d: Fitted values vs Actual values (Total)
 plot_e <- ggplot(filtered_data, aes(x = Total, y = fitted)) +
@@ -676,7 +621,8 @@ plot_e <- ggplot(filtered_data, aes(x = Total, y = fitted)) +
     title = "Fitted vs Actual Values",
     y = "Fitted Values",
     x = "Actual Values"
-  )
+  ) +
+  theme(plot.title = element_text(size = 10))
 
 # Plot e: Residuals vs Predictor 3 (beds_per_1000)
 plot_d <- ggplot(filtered_data, aes(x = beds_per_1000, y = residuals)) +
@@ -687,7 +633,8 @@ plot_d <- ggplot(filtered_data, aes(x = beds_per_1000, y = residuals)) +
     title = "Residuals vs Beds per 1,000",
     y = "Residuals",
     x = "Beds per 1,000"
-  )
+  ) +
+  theme(plot.title = element_text(size = 10))
 
 # Combine all plots into a grid
 combined_plot <- (plot_b | plot_c) / (plot_d | plot_e) +
@@ -696,13 +643,17 @@ combined_plot <- (plot_b | plot_c) / (plot_d | plot_e) +
 # Print the combined plot
 print(combined_plot)
 ```
-@fig-resid-adj residuals show no clear patterns against attendance, physicians per 1,000, or beds per 1,000, supporting the assumption of linearity. There are no violations against constant variance, unlike in @fig-resid. The fitted values reasonably align with the actual values. However, the limited data points (5 observations) reduce the robustness of these conclusions. 
+@fig-residadj residuals show no clear patterns against attendance, physicians per 1,000, or beds per 1,000, supporting the assumption of linearity. There are no violations against constant variance, unlike in @fig-modeldetails. The fitted values reasonably align with the actual values. However, the limited data points (5 observations) reduce the robustness of these conclusions.
+
+\newpage
+
 ```{r}
 #| echo: false
-#| output: false
+#| warning: false 
+#| error: false
 #| eval: true
 #| label: fig-adjmodelresults
-#| tbl-cap: "Projections of Linear Model onto Each Predictor: Linear model explaining percentage increase in wait times based on healthcare system predictors (2015-2019)."
+#| tbl-cap: "Projections of Linear Model onto Each Predictor (2015-2019)."
 
 # Function to create a projection plot for a specific predictor
 create_projection_plot <- function(predictor_name, data, model) {
@@ -746,7 +697,11 @@ combined_plot <- (p1 | p2 | p3) +
   plot_annotation(
     title = "Projections of Linear Model (2015-2019) onto \nEach Predictor vs Percentage Change in Total Wait Times Compared to 2015",
     caption = "**Red lines indicate the model's predictions, and blue points represent the actual data."
+  ) &
+  theme(
+    plot.title = element_text(size = 10)  # Adjust the title font size here
   )
+
 
 # Display the combined plot
 print(combined_plot)
