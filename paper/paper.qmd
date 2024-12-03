@@ -66,7 +66,7 @@ Additional datasets are sourced from the OECD Health Statistics 2024 database [@
 \newpage 
 
 ## Methodology {#sec-methodology}
-The data cleaning method involved many steps and is described in @sec-cleaning. All data cleaning was done using `arrow` [@arrow], `tidyverse` [@tidyverse], `readxl` [@readxl], and `stringr` [@stringr]. Below is a snapshot of the first five rows of the key data columns which will be used for this paper. @tbl-dataappendix provides the data including individual treatment area percentage change in waiting times from 2015 in table format. 
+The data cleaning method involved many steps and is described in @sec-cleaning. All data cleaning was done using `arrow` [@arrow], `tidyverse` [@tidyverse], `readxl` [@readxl], and `stringr` [@stringr]. Below is the cleaned data which will be used for this paper. @tbl-dataappendix provides the data including individual treatment area percentage change in waiting times from 2015 in table format. 
 
 ```{r}
 #| echo: false
@@ -803,7 +803,7 @@ This idealized methodology addresses the critical gaps in existing data by integ
 
 The survey is found at this link: <https://forms.gle/QJBeSUjxUejnSi3A9>. 
 
-** *Copy of the Survey* **
+**Copy of the Survey**
 
 **NHS Patient Wait Time Experience Survey**
 
