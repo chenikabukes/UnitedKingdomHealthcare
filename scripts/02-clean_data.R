@@ -119,23 +119,10 @@ yearly_averages <- all_data %>%
 
 # Pivot the data so that years are rows and treatment functions are columns
 wide_yearly_averages <- yearly_averages %>%
-  pivot_wider(names_from = treatment_function, values_from = Average_Waiting_Time)
-
-# Calculate percent change from 2015 levels with robust handling of NA values
-wide_yearly_averages_percent_change <- wide_yearly_averages %>%
-  mutate(across(
-    -Year,  # Exclude the 'Year' column from the calculation
-    ~ ifelse(!is.na(.) & !is.na(first(.)), (.) / first(.) * 100 - 100, NA),  # Calculate percent change, handle NA
-    .names = "{.col}_percent_change"  # Rename columns to indicate percent change
-  ))
-
-# Drop the original columns and retain only the percent change columns
-wide_yearly_averages_percent_change <- wide_yearly_averages_percent_change %>%
-  select(Year, ends_with("_percent_change")) %>%
-  rename_with(~ gsub("_percent_change", "", .), ends_with("_percent_change"))  # Rename back to original names
+  pivot_wider(names_from = treatment_function, values_from = Average_Waiting_Time) 
 
 # Rename columns to keep only the first word for treatment names and resolve duplicates
-wide_yearly_averages_percent_change <- wide_yearly_averages_percent_change %>%
+wide_yearly_averages <- wide_yearly_averages %>%
   rename_with(~ {
     # Extract the first word
     renamed <- sapply(strsplit(., " "), `[`, 1)
@@ -203,7 +190,20 @@ a_and_e_data <- read.csv("./data/01-raw_data/a_and_e_activity_data_full.csv") |>
 final_data <- physician_data |>
   left_join(beds_data, by = "Year") |>
   left_join(a_and_e_data, by = "Year") |>
-  left_join(wide_yearly_averages_percent_change, by = "Year") |>
+  left_join(wide_yearly_averages, by = "Year") |>
+  select(
+    Year, 
+    beds_per_1000, 
+    physicians_per_1000, 
+    attendance,
+    Total
+  )
+
+
+final_data_full <- physician_data |>
+  left_join(beds_data, by = "Year") |>
+  left_join(a_and_e_data, by = "Year") |>
+  left_join(wide_yearly_averages, by = "Year") |>
   select(
     Year, 
     beds_per_1000, 
@@ -228,11 +228,10 @@ final_data <- physician_data |>
     Trauma,
     Urology,
     Total
-  ) 
   )
 
 
 #### Save final dataset ####
 write_parquet(final_data, "./data/02-analysis_data/final_healthcare_data.parquet")
-write.csv(final_data, "./data/02-analysis_data/final_healthcare_data.csv")
+write_parquet(final_data_full, "./data/02-analysis_data/healthcare_and_individual_treatments.parquet")
 
