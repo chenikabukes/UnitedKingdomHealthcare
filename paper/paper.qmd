@@ -110,9 +110,9 @@ ggplot(cleaned_data ,
   geom_line(size = 1, color = "black") +
   geom_point(size = 2, color = "black") +
   labs(
-    title = "Median Number of Weeks for Total Wait Times Compared to 2015",
+    title = "Average Number of Weeks spent Waiting from Referral to Treatment",
     x = "Year",
-    y = "Average Wait Time (Median # of Weeks)",
+    y = "Average Wait Time (# of Weeks)",
     color = NULL
   ) +
   theme_minimal() +
@@ -399,11 +399,11 @@ kable(
 )
 ```
 ### Data Cleaning {#sec-cleaning}
-The data cleaning process undertaken in this project involved several key steps to ensure the dataset was accurate, standardized, and ready for analysis. First, raw data on healthcare waiting times, physicians, hospital beds, and emergency admissions from various sources, such as the OECD and NHS, were loaded. For the waiting times data, all Excel files were processed by standardizing column names, extracting relevant fields (treatment function and average waiting time), and appending metadata such as the year and month derived from file names. Treatment functions were harmonized across years, with those from April 2021 onward mapped to their pre-2021 equivalents using a predefined renaming scheme. Data with irrelevant or missing treatment functions (e.g., "Other") were excluded.
+The data cleaning process undertaken in this project involved several steps to ensure the dataset was accurate, standardized, and ready for analysis. First, raw data on healthcare waiting times, physicians, hospital beds, and emergency admissions from the OECD and NHS were loaded. For the waiting times data, all Excel files were processed by standardizing column names, extracting relevant fields (treatment function and average waiting time), and appending metadata such as the year and month derived from file names. Treatment functions were harmonized across years, with those from April 2021 onward mapped to their pre-2021 equivalents using a predefined renaming scheme. Data with irrelevant or missing treatment functions (e.g., "Other") were excluded.
 
-Yearly averages for each treatment function were calculated by grouping the data by year and function and computing the mean waiting time. The data was then pivoted to make years the rows and treatment functions the columns, providing a wide-format structure suitable for further analysis. Special corrections were applied, such as manually imputing specific values for ENT in 2019 and 2020.
+Yearly averages for each treatment function were calculated by grouping the data by year and function and computing the mean waiting time. The data was then pivoted to make years the rows and treatment functions the columns, providing a wide-format structure suitable for further analysis.
 
-All datasets were merged on the year variable to produce a consolidated dataset. Percent changes in waiting times from 2015 levels were computed for each treatment function to highlight trends over time. Lastly, columns with multiple-word treatment names were shortened to their first word, with duplicates (e.g., "General Surgery" and "General Medicine") resolved by appending unique suffixes. 
+All datasets were merged on the year variable to produce a consolidated dataset. Percent changes in attendance rates from 2015 levels were computed to highlight trends over this study's time as opposed to the original percent changes from 2011 data. Lastly, columns with multiple-word treatment names were shortened to their first word, with duplicates (e.g., "General Surgery" and "General Medicine") resolved by appending unique suffixes. 
 
 ### Individual Treatment Wait Times {#sec-cleaneddataset}
 ```{r}
@@ -745,8 +745,6 @@ A stratified multi-stage sampling design will be employed to ensure representati
     
     * Demographics: Age, income, and ethnicity.
     
-    * Demographics: Age, income, and ethnicity.
-    
   For instance, one stratum might consist of elderly rural residents requiring orthopedic care, while another might focus on young urban adults accessing emergency services.
   
 2. Primary Sampling Units (PSUs): Regions within each stratum will be selected as PSUs using probability proportional to size (PPS). For example, a densely populated area like London will have a higher chance of selection compared to a sparsely populated rural region.
@@ -844,20 +842,27 @@ Contact Information: For questions regarding this survey or the methodology used
   - 65+
   ```
 
-2. **What is your gender?**
+2. **What sex were you assigned at birth, on your original birth certificate?**
   
   ```
   - Male
   
   - Female
+  ```
   
-  - Non-binary
-  
-  - Prefer not to say
+3. **How do you currently describe yourself (mark all that apply)?**
   
   ```
+  - Female
+  
+  - Male
+  
+  - Transgender
+  
+  - I use a different term [free-text]
+  ```
 
-3. **What is your annual household income?**
+4. **What is your annual household income?**
 
   ```
   - Under £20,000
@@ -873,7 +878,7 @@ Contact Information: For questions regarding this survey or the methodology used
   - Prefer not to say
   ```
 
-4. **What is your ethnicity?**
+5. **What is your ethnicity?**
 
   ```
   - White
@@ -889,7 +894,7 @@ Contact Information: For questions regarding this survey or the methodology used
   - Prefer not to say
   ```
 
-1. **What is your post code?**
+6. **What is your post code?**
 
   ```
   Short answer text
@@ -897,7 +902,7 @@ Contact Information: For questions regarding this survey or the methodology used
 
 **Section 2**: Healthcare Access
 
-5. **Have you had to wait longer than 18 weeks from referral for a medical procedure in the past 12 months?**
+7. **Have you had to wait longer than 18 weeks from referral for a medical procedure in the past 12 months?**
 
   ```
   - Yes
@@ -907,7 +912,7 @@ Contact Information: For questions regarding this survey or the methodology used
   ```
 
 
-5. **If yes, how long did you wait to be consulted after referral?**
+8. **If yes, how long did you wait to be consulted after referral?**
   
   ```
   - 18-24 Weeks
@@ -926,7 +931,7 @@ Contact Information: For questions regarding this survey or the methodology used
   
   ```
 
-6. **What type of medical procedure did you wait for?**
+9. **What type of medical procedure did you wait for?**
 
   ```
   - General Surgery
@@ -962,7 +967,7 @@ Contact Information: For questions regarding this survey or the methodology used
   - Gastroenterology
   ```
 
-7. **If you waited for longer than 18 weeks for an appointment, were you contacted during the waiting period by an NHS representative for a check-up on your related health problem?**
+10. **If you waited for longer than 18 weeks for an appointment, were you contacted during the waiting period by an NHS representative for a check-up on your related health problem?**
   
   ```
   - Yes
@@ -972,7 +977,7 @@ Contact Information: For questions regarding this survey or the methodology used
 
 **Section 3:** Impact of Wait Times
 
-8. **Did the wait time affect your health or well-being?**
+11. **Did the wait time affect your health or well-being?**
 
   ```
   - Yes, significantly
@@ -982,7 +987,7 @@ Contact Information: For questions regarding this survey or the methodology used
   - No
   ```
 
-9. **If yes, how were you affected?**
+12. **If yes, how were you affected?**
   
   ```
   - Physical health deterioration
@@ -994,7 +999,7 @@ Contact Information: For questions regarding this survey or the methodology used
   - Other...
   ```
 
-10. **How do you feel about virtual consultations?**
+13. **How do you feel about virtual consultations?**
 
   ```
   - Very satisfied
@@ -1012,7 +1017,7 @@ Contact Information: For questions regarding this survey or the methodology used
 
 **Section 4:** Perceptions of Healthcare System
 
-10. **How would you rate the adequacy of healthcare resources in your area?**
+14. **How would you rate the adequacy of healthcare resources in your area?**
   ```
   - Excellent
   
@@ -1024,7 +1029,7 @@ Contact Information: For questions regarding this survey or the methodology used
   
   ```
 
-11. **What do you think would most improve healthcare wait times?**
+15. **What do you think would most improve healthcare wait times?**
   
   ```
   - More hospital beds
@@ -1040,11 +1045,11 @@ Contact Information: For questions regarding this survey or the methodology used
 
 **Section 5**: Feedback and Suggestions
 
-12. **What changes would you like to see in the NHS to reduce referral to treatment waiting times?**
+16. **What changes would you like to see in the NHS to reduce referral to treatment waiting times?**
 
-13. **Do you have any suggestions to improve this survey?**
+17. **Do you have any suggestions to improve this survey?**
 
-
+\newpage
 
 # References
 
