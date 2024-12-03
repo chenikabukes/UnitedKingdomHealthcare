@@ -18,5 +18,5 @@ The repo is structured as:
 
 
 ## Statement on LLM usage
-The code to clean the data, simulate the data, and produce figures were drafted with the assistance of ChatGPT.
+The code to clean the data, simulate the data, and produce figures was drafted with the assistance of ChatGPT.
 The entire interaction history with LLMs is documented and available in other/llms/usage.txt.
