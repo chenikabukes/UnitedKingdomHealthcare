@@ -46,7 +46,7 @@ In this paper, the analysis will be carried out using the statistical programmin
 
 This report integrates data from two key sources: the NHS and the Organisation for Economic Co-operation and Development (OECD). These datasets provide critical information to analyze trends in healthcare demand and resources in the United Kingdom.
 
-The NHS Referral to Treatment (RTT) waiting times dataset [@wait] is the primary source for waiting time statistics. These data measure the median time (in weeks) between referral by a general practitioner (GP) and the start of treatment for elective care, capturing delays across 15 key medical procedures @tbl-treatments. This dataset offers procedure-specific insights that allow for cross-procedure and temporal comparisons. The data are aggregated and published monthly. 
+The NHS Referral to Treatment (RTT) Waiting Times dataset [@wait] is the primary source for waiting time statistics. These data measure the median time (in weeks) between referral by a general practitioner (GP) and the start of treatment for elective care, capturing delays across 15 key medical procedures @tbl-treatments. This dataset offers procedure-specific insights that allow for cross-procedure and temporal comparisons. The data are aggregated and published monthly. 
 
 The NHS A&E Attendances and Emergency Admissions dataset [@attendance] captures the monthly demand for emergency services. It includes the total number of attendances at Accident & Emergency (A&E) departments and emergency admissions, alongside measures of wait times for admission. These statistics are collected at the provider organization level from NHS Trusts, Foundation Trusts, and independent sector organizations. The data are aggregated from monthly submissions.
 
@@ -124,7 +124,7 @@ ggplot(cleaned_data ,
 
 ```
 
-@fig-total shows the percentage increase in total wait times for key medical procedures in the UK relative to 2015, revealing a steady rise through 2019, followed by fluctuations during the COVID-19 pandemic. The moderate growth between 2015 and 2019 suggests manageable strain on healthcare resources, but the dip in 2020 reflects reduced elective procedures as hospitals prioritized emergency care. This was followed by a sharp increase in 2021 and a steep surge in 2022, likely due to the backlog created during the pandemic, ongoing demand pressures, and resource constraints. These trends underscore the urgent need for targeted healthcare interventions, including expanded capacity, streamlined workflows, and policies to address the post-pandemic backlog and increasing demand. Overall, wait times have risen close to 30% since 2015, further emphasizing the need for targeted interventions to improve healthcare accessibility and efficiency.
+@fig-total shows the percentage increase in total wait times for key medical procedures in the UK relative to 2015, revealing a steady rise through 2019, followed by fluctuations during the COVID-19 pandemic. The moderate growth between 2015 and 2019 suggests manageable strain on healthcare resources, but the dip in 2020 reflects reduced elective procedures as hospitals prioritized emergency care. This was followed by a sharp increase in 2021 and a steep surge in 2022, likely due to the backlog created during the pandemic, ongoing demand pressures, and resource constraints. Overall, wait times have risen close to 30% since 2015, further emphasizing the need for targeted interventions to improve healthcare accessibility and efficiency.
 
 \newpage
 
@@ -143,7 +143,7 @@ ggplot(cleaned_data, aes(x = Year, y = beds_per_1000)) +
   theme_minimal()
 ```
 
-@fig-beds shows a steady decline in hospital beds per 1,000 inhabitants from 2015 to 2020, decreasing from approximately 2.6 to 2.45 beds. This consistent downward trend indicates a reduction in bed capacity relative to population growth, reflecting potential healthcare system pressures such as resource reallocation, efficiency measures, or underinvestment in infrastructure. However, a slight rebound is observed in 2021 and 2022, with the number of beds per 1,000 inhabitants stabilizing at just above 2.45. This recent stabilization could suggest efforts to address capacity constraints or temporary adjustments in response to the increased demand for hospital resources during the COVID-19 pandemic. The trend underscores the importance of evaluating the impact of long-term capacity changes on patient care and exploring strategies to ensure sufficient resources to meet population needs.
+@fig-beds shows a steady decline in hospital beds per 1,000 inhabitants from 2015 to 2020, decreasing from approximately 2.6 to 2.45 beds. This consistent downward trend indicates a reduction in bed capacity relative to population growth, reflecting potential healthcare system pressures such as resource reallocation, efficiency measures, or underinvestment in infrastructure. However, a slight rebound is observed in 2021 and 2022, with the number of beds per 1,000 inhabitants stabilizing at just above 2.45. The trend underscores the importance of evaluating the impact of long-term capacity changes on patient care and exploring strategies to ensure sufficient resources to meet population needs.
 
 \newpage
 
@@ -198,7 +198,8 @@ The statistical significance of each $\beta_k$ coefficient will be assessed usin
 
 The model was run in `R` [@citeR] using the `modelsummary` package [@modelsummary].
 
-## Model set-up
+**Model Instantiation**
+
 The final model is displayed here:
 
 $$
@@ -213,7 +214,8 @@ $$
 
 The goal of the linear regression model is to estimate the values of $\beta_1$, $\beta_2$, and $\beta_3$ such that the model fits the data well and to predict the expected value of the average total waiting time for procedures for different values of physician rates, hospital bed rates, and type 1 major care attendance. The statistical significance of 1 can be assessed using a t-test, which tests whether the estimated coeﬀicient is significantly different from zero. If the p-value of the t-test for each coefficient is less than a chosen significance level, we can conclude that there is a significant relationship between the average percentage change in wait time and the healthcare predictors.
 
-### Model Assumptions {#sec-model-assumptions}
+**Model Assumptions** 
+
 The linear regression model assumes:
 
 * Linearity: The relationship between the predictors and response variable is linear.
@@ -223,25 +225,29 @@ The linear regression model assumes:
 
 These are checked in @sec-residuals. 
 
-### Model justification
+**Model justification**
 
 This model framework allows us to evaluate the impact of key healthcare system factors on wait times. The selected predictors $beds\_per\_1000$, $physicians\_per\_1000$, and $attendance$ are directly linked to resource availability and demand, making them relevant for understanding delays in medical care. The results from this model can provide actionable insights to inform policies aimed at optimizing resource allocation, improving healthcare infrastructure, and managing patient flow to reduce wait times. This analysis will help identify key leverage points for optimizing resource allocation and reducing wait times across various medical procedures.
 
-### Hypotheses
+
+**Hypotheses**
+
 Each predictor variable is expected to contribute uniquely:
 
 * Beds per 1,000 inhabitants ($X_1$): A lower bed-to-population ratio may increase wait times by limiting inpatient care capacity.
 * Physicians per 1,000 inhabitants ($X_2$): Greater physician availability is hypothesized to decrease wait times.
 * Attendance Rates ($X_3$): Increased attendance could indicate growing demand on the healthcare system, potentially leading to longer wait times.
 
+\newpage
 
-### Evaluation and Validation
+**Evaluation and Validation**
+
 To ensure the robustness of the findings, the model was validated through the following steps:
 
-1. Residual Diagnostics: We assessed residual plots for patterns suggesting non-linearity or heteroscedasticity. No significant violations of assumptions were detected @sec-residuals.
-2. Significance Testing: We conducted t-tests to assess whether each coefficient ($\beta_0$, $\beta_1$, $\beta_2$, $\beta_3$) is statistically significant at the 0.05 level @sec-results.
+1. Residual Diagnostics: residual plots were assessed for patterns suggesting non-linearity or heteroscedasticity. No significant violations of assumptions were detected @sec-residuals.
+2. Significance Testing: t-tests were conducted to assess whether each coefficient ($\beta_0$, $\beta_1$, $\beta_2$, $\beta_3$) is statistically significant at the 0.05 level @sec-results.
 3. Goodness of Fit: The R-squared statistic was calculated to measure how well the model explains the variability in wait times @sec-results.
-4. Alternative Models: a variant containing data from 2015 to 2022 was tested in @sec-adapted to confirm whether the anomalies present in the Covid-19 pandemic years of 2020-2021 was a probable cause for poor fit. This model had a much smaller $R^2$ and adjusted $R^2$ values and a much larger RMSE. The observation size differences between the two models were not significant enough to account for the much poorer fit, thus the smaller model was kept for final analysis. 
+4. Alternative Models: a variant containing data from 2015 to 2022 was tested in @sec-adapted to confirm whether the anomalies present in the Covid-19 pandemic years of 2020-2021 was a probable cause for poor fit. This model had much smaller $R^2$ and adjusted $R^2$ values and a much larger RMSE. The observation size differences between the two models were not significant enough to account for the much poorer fit, thus the smaller model was kept for final analysis. 
 
 \newpage
 
@@ -336,9 +342,9 @@ combined_plot <- (p1 | p2 | p3) +
 print(combined_plot)
 
 ```
-The projection plots in @fig-adjmodelresults illustrate the linear model's predictions for the average wait timein relation to the three predictors: attendance, physicians per 1,000, and beds per 1,000. The red lines in each plot represent the predicted relationships, while the blue points reflect the observed data. For attendance, the model suggests a negative relationship with wait times, as indicated by the downward-sloping red line. However, the observed data points display considerable variability around the prediction, with notable deviations suggesting the presence of unmodeled interactions or confounding factors. The relationship for physicians per 1,000 is also negative, with a steep downward slope showing that higher physician density is associated with reduced wait times. While the data points align more closely with the model's predictions compared to attendance, some deviations, particularly at lower physician densities, highlight potential limitations in the model’s assumptions. The strongest and most consistent relationship is observed for beds per 1,000, where the steep downward-sloping red line indicates a significant association between increased bed availability and reduced wait times. The observed data points align closely with this trend, suggesting that this predictor has a robust and straightforward influence on wait times.
+The projection plots in @fig-adjmodelresults illustrate the linear model's predictions for average wait times in relation to the three predictors: attendance, physicians per 1,000, and beds per 1,000. Red lines represent the predicted relationships, while blue points reflect observed data. For attendance, the model suggests a negative relationship, but considerable variability and notable deviations hint at unmodeled interactions or confounding factors. For physicians per 1,000, the negative relationship is clearer, with a steeper downward slope, though deviations at lower densities reveal limitations in the model’s assumptions. The strongest relationship is seen for beds per 1,000, where a consistent downward slope indicates a significant association between increased bed availability and reduced wait times, with observed data aligning closely to this trend.
 
-Across all predictors, however, the small sample size (n = 5) significantly limits the reliability and generalizability of the findings. While the data for 2015–2019 avoids the confounding impact of the COVID-19 pandemic, the limited dataset reduces the ability to draw definitive conclusions, and individual coefficient estimates remain non-significant despite the improved model fit. The variability around the predictions, particularly for attendance and physicians per 1,000, highlights potential missing interactions or non-linear relationships that the linear model cannot capture. The model overall captures the relationship between the predictors and the outcome variable better than the model investigated in @sec-adapted. 
+However, the small sample size (n = 5) limits the reliability and generalizability of these findings. While the 2015–2019 data avoids the confounding effects of COVID-19, the limited dataset hampers definitive conclusions, and predictor coefficients remain non-significant. Variability in predictions for attendance and physicians per 1,000 suggests potential missing interactions or non-linear dynamics. Overall, the model better captures the relationship between predictors and wait times than the one analyzed in @sec-adapted.
 
 # Discussion {#sec-discussion}
 
@@ -717,17 +723,20 @@ The projection plots in @fig-modelresults1 illustrate the linear model's predict
 
 ## Idealized Methodology 
 
-### Limitations of Current NHS and OECD Data
+**Limitations of Current NHS and OECD Data**
+
 The NHS and OECD datasets utilized in this study provide valuable insights into hospital wait times through aggregate statistics such as median waiting times, hospital beds per capita, and physician density. These metrics are essential for maintaining patient confidentiality and offering a broad overview of healthcare system performance. However, these datasets exhibit limitations. They fail to capture detailed patient demographics, regional healthcare disparities, or systemic inefficiencies that may drive the increasing RTT (Referral to Treatment) wait times. Moreover, they omit subjective factors such as patient satisfaction, perceived urgency, and the emotional toll of delayed care—elements that could provide a more comprehensive understanding of the healthcare experience.
 
 Given this study's findings of no significant relationship between the predictors—hospital beds per 1,000, physicians per 1,000, and Type 1 Major Care Attendance Rates—and wait times, there is reason to explore more nuanced factors impacting delays. The absence of demographic data limits the ability to identify disparities in healthcare access and outcomes across different population groups. Furthermore, the lack of published records capturing patient perceptions of NHS wait times restricts the ability to evaluate how these delays are experienced by those affected.
 
 Addressing these gaps would require integrating more granular data on demographic variables, regional healthcare infrastructure, and patient-reported outcomes. Such data would enable a deeper analysis of the underlying drivers of wait times and support the development of targeted, effective interventions to improve healthcare delivery and patient experiences during the waiting period.
 
-### Overview
+**Overview**
+
 To address the limitations of the current data, an idealized survey methodology is proposed to gather more granular and patient-centered data on hospital wait times and their systemic determinants. This methodology incorporates advanced sampling techniques, targeted recruitment strategies, and robust data validation measures to ensure a comprehensive and representative dataset. By focusing on both quantitative and qualitative aspects of healthcare delays, this approach aims to provide a deeper understanding of the factors influencing wait times and inform more effective policy interventions.
 
-### Sampling Method
+**Sampling Method**
+
 A stratified multi-stage sampling design will be employed to ensure representative data collection across the UK. This method captures the diversity of experiences in different regions, healthcare facilities, and patient populations.
 
 1. Stratification: The population will be divided into strata based on:
@@ -746,18 +755,20 @@ A stratified multi-stage sampling design will be employed to ensure representati
 
 4. Patient Selection: Patients within selected facilities will be randomly sampled, ensuring a balanced representation of various demographic and clinical profiles. Quotas will be used to ensure sufficient representation of underserved groups, such as low-income or minority patients.
 
-### Recruitment Strategy
+**Recruitment Strategy**
+
 A multi-modal recruitment approach will maximize participation across diverse populations. Participants will be invited through:
 
-* **In-hospital Invitations**: Patients visiting selected facilities will be invited to participate, either during or after their appointments.
+* *In-hospital Invitations*: Patients visiting selected facilities will be invited to participate, either during or after their appointments.
 
-* **Mail and Email**: Recruitment materials will be sent to patients identified through administrative records, with links to online surveys or options for telephone interviews.
+* *Mail and Email*: Recruitment materials will be sent to patients identified through administrative records, with links to online surveys or options for telephone interviews.
 
-* **Community Outreach**: Partnerships with local organizations, especially in underserved areas, will help reach populations that might otherwise be excluded.
+* *Community Outreach*: Partnerships with local organizations, especially in underserved areas, will help reach populations that might otherwise be excluded.
 
-* **Incentives**: Participants will receive small incentives, such as gift cards, to encourage participation and improve response rates.
+* *Incentives*: Participants will receive small incentives, such as gift cards, to encourage participation and improve response rates.
 
-### Data Collection and Variables
+**Data Collection and Variables**
+
 The survey will collect both quantitative and qualitative data:
 
 1. Demographic Information:
@@ -785,7 +796,8 @@ The survey will collect both quantitative and qualitative data:
     * Emotional, physical, and financial effects of waiting for treatment.
 
 
-### Data Validation 
+**Data Validation**
+
 The collected data will undergo validation to ensure accuracy and reliability:
 
 * Consistency Checks: Responses will be cross-validated with administrative records to ensure coherence (e.g., matching reported wait times with NHS data).
@@ -794,18 +806,19 @@ The collected data will undergo validation to ensure accuracy and reliability:
 
 * Pilot Testing: The survey will be tested on a small sample to refine questions, eliminate ambiguities, and improve response rates.
 
-### Simulation and Future Data Collection 
+**Simulation and Future Data Collection** 
 
 To complement the survey data, simulations will be conducted to model the impact of hypothetical interventions (e.g., increasing bed availability, optimizing physician allocation) on wait times. Additionally, future data collection efforts will incorporate continuous monitoring through partnerships with NHS facilities, enabling real-time updates and trend analysis.
 
-### Conclusion
+**Conclusion**
+
 This idealized methodology addresses the critical gaps in existing data by integrating more nuanced information which cannot be collected by automated NHS portals, but rather surveying. The survey captures patient perspectives, systemic factors, and granular regional insights. By leveraging stratified sampling, a variety of recruitment strategies, and validation techniques, this approach can provide a more nuanced understanding of healthcare delays and patient perspectives in the UK. The findings will guide targeted interventions to improve healthcare access and efficiency, ensuring that resources are allocated where they are needed most.
 
 The survey is found at this link: <https://forms.gle/QJBeSUjxUejnSi3A9>. 
 
 **Copy of the Survey**
 
-**NHS Patient Wait Time Experience Survey**
+*NHS Patient Wait Time Experience Survey:*
 
 This survey aims to gather insights into patients’ experiences with NHS referral-to-treatment (RTT) wait times, their perceptions of healthcare resources, and the impact of delays on their well-being. Your responses will help inform strategies to improve healthcare access and efficiency. Participation is voluntary, and all responses will remain confidential. 
 
